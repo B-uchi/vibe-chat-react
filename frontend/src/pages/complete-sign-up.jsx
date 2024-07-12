@@ -1,10 +1,11 @@
 import Spinner from "../components/Spinner";
 import { useAuth } from "../lib/hooks/useAuth.jsx";
-import { db } from "../lib/firebaseConfig";
+import { db, auth } from "../lib/firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Toaster, toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { onAuthStateChanged } from "firebase/auth";
 
 const CompleteSignup = () => {
   const user = useAuth().user;
@@ -12,9 +13,11 @@ const CompleteSignup = () => {
   const [error, setError] = useState(false);
   const [username, setUsername] = useState("");
   const navigate = useNavigate();
+  const [authLoading, setAuthLoading] = useState(null)
+
 
   useEffect(() => {
-    const checkUser = async () => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.data()?.userName) {
@@ -23,10 +26,16 @@ const CompleteSignup = () => {
         } else {
           setLoading(false);
         }
+      } else {
+        setLoading(false);
+        navigate("/sign-in");
       }
-    };
-    checkUser();
-  }, [user]);
+      setAuthLoading(false); // Auth state check complete
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
+
 
   const submitUsername = async () => {
     const usernameRegex = /^[a-zA-Z0-9]{4,16}$/;
