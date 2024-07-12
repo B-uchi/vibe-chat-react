@@ -5,20 +5,12 @@ import {
   createContext,
   ReactNode,
 } from "react";
-import { auth } from "../firebaseConfig";
-import { User } from "firebase/auth";
+import { auth } from "../firebaseConfig.js";
 
-interface AuthContextType {
-  user: User | null;
-}
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
+const AuthContext = createContext(undefined);
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const AuthProvider = ({ children }: AuthProviderProps) => {
+export const AuthProvider = ({ children }) => {
   const auth = useProvideAuth();
   return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
 };
@@ -28,7 +20,7 @@ export const useAuth = () => {
 };
 
 const useProvideAuth = () => {
-  const [user, setUser] = useState<null | User>(null);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
