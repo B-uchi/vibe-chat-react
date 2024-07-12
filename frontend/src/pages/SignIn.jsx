@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { toast, Toaster } from "sonner";
-import { auth, db } from "../lib/firebaseConfig.js";
+import { auth, db } from "../lib/firebaseConfig";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -10,8 +10,7 @@ import {
   signInWithPopup,
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
-// import { useAuth } from "../lib/hooks/useAuth.tsx";
-import Spinner from "../components/Spinner.jsx";
+import Spinner from "../components/Spinner";
 import { useNavigate } from "react-router-dom";
 
 const SignIn = () => {
@@ -21,102 +20,101 @@ const SignIn = () => {
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  // const user = useAuth()?.user;
   const navigate = useNavigate();
 
-  const signIn = async () => {
-    setLoading(true);
+  const signIn = async (e) => {
     e.preventDefault();
+    setLoading(true);
+
     if (!email || !password) {
       setLoading(false);
       return toast.error("All fields are required");
     }
-    await signInWithEmailAndPassword(auth, email, password)
-      .then(async (userCredential) => {
-        const user = userCredential.user;
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.data()?.userName) {
-          setLoading(false);
-          navigate("/");
-          return;
-        } else {
-          setLoading(false);
-          navigate("/complete-sign-up");
-        }
-      })
-      .catch((error) => {
-        console.log(error.message);
-        toast.error(error.message);
-      });
+
+    try {
+      toast.info("Signing in...");
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+
+      if (userDoc.data()?.userName) {
+        toast.success("Signed in successfully");
+        setLoading(false);
+        navigate("/");
+      } else {
+        toast.success("Signed in successfully");
+        setLoading(false);
+        navigate("/complete-sign-up");
+      }
+    } catch (error) {
+      console.log("Error signing in:", error);
+      toast.error(error.message);
+      setLoading(false);
+    }
   };
 
-  const signUp = async () => {
-    setLoading(true);
+  const signUp = async (e) => {
     e.preventDefault();
+    setLoading(true);
+
     if (!email || !password || !firstName || !lastName) {
+      setLoading(false);
       return toast.error("All fields are required");
     }
-    await createUserWithEmailAndPassword(auth, email, password)
-      .then(async (userCredential) => {
-        try {
-          const user = userCredential.user;
-          sendEmailVerification(user);
 
-          const userDoc = await setDoc(doc(db, "users", user.uid), {
-            id: user.uid,
-            email: user.email,
-            firstName,
-            lastName,
-            createdAt: new Date().toISOString(),
-          });
-          setLoading(false);
-          toast.info(
-            "Account created successfully. Check inbox for verification email"
-          );
-          navigate("/complete-sign-up");
-        } catch (error) {
-          setLoading(false);
-          toast.error("Failed, please try again");
-          console.log(error);
-        }
-      })
-      .catch((error) => {
-        setLoading(false);
-        console.log(error.message);
-        toast.error(error.message);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      await sendEmailVerification(user);
+
+      await setDoc(doc(db, "users", user.uid), {
+        id: user.uid,
+        email: user.email,
+        firstName,
+        lastName,
+        createdAt: new Date().toISOString(),
       });
+
+      toast.info("Account created successfully. Check inbox for verification email");
+      setLoading(false);
+      console.log("Navigating to '/complete-sign-up'");
+      navigate("/complete-sign-up");
+    } catch (error) {
+      console.log("Error signing up:", error);
+      toast.error(error.message);
+      setLoading(false);
+    }
   };
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider)
-      .then(async (result) => {
-        const user = result.user;
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-          setLoading(false);
-          return;
-        } else {
-          console.log("new user");
-          const userDoc = await setDoc(doc(db, "users", user.uid), {
-            id: user.uid,
-            email: user.email,
-            firstName: user.displayName?.split(" ")[0],
-            lastName: user.displayName?.split(" ")[1],
-            createdAt: new Date().toISOString(),
-          });
-          navigate("/complete-sign-up");
-          setLoading(false);
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-        setLoading(false);
-        toast.error("An error occured");
-      });
-  };
 
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+
+      if (userDoc.exists()) {
+        setLoading(false);
+        navigate("/");
+      } else {
+        await setDoc(doc(db, "users", user.uid), {
+          id: user.uid,
+          email: user.email,
+          firstName: user.displayName?.split(" ")[0],
+          lastName: user.displayName?.split(" ")[1],
+          createdAt: new Date().toISOString(),
+        });
+        setLoading(false);
+        navigate("/complete-sign-up");
+      }
+    } catch (error) {
+      console.log("Error with Google sign-in:", error);
+      toast.error("An error occurred");
+      setLoading(false);
+    }
+  };
   return (
     <main className="w-full h-[100vh] flex relative">
       <Toaster position="top-right" richColors />

@@ -1,5 +1,5 @@
 import Spinner from "../components/Spinner";
-import { useAuth } from "../lib/hooks/useAuth";
+import { useAuth } from "../lib/hooks/useAuth.jsx";
 import { db } from "../lib/firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
@@ -7,7 +7,7 @@ import { Toaster, toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
 const CompleteSignup = () => {
-  const user = useAuth()?.user;
+  const user = useAuth().user;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [username, setUsername] = useState("");
@@ -23,8 +23,6 @@ const CompleteSignup = () => {
         } else {
           setLoading(false);
         }
-      } else {
-        navigate("/sign-in");
       }
     };
     checkUser();
