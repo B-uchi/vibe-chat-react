@@ -48,9 +48,11 @@ function App() {
   return (
     <Router>
       <AuthChecker>
-        <div className="h-[100vh]">
-          <Navbar />
-          <div className="h-[92vh]">
+        <div className="flex flex-col h-screen">
+          <div className="sticky top-0 z-30">
+            <Navbar />
+          </div>
+          <div className="flex-1 overflow-auto">
             <Routes>
               <Route path="/sign-in" element={<SignIn />} />
               <Route path="/" element={<Dashboard />} />
