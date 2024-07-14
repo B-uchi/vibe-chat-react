@@ -5,6 +5,8 @@ import { auth } from "./lib/firebaseConfig";
 import SignIn from "./pages/SignIn";
 import CompleteSignup from "./pages/complete-sign-up";
 import "../style.css";
+import Dashboard from "./pages/Dashboard";
+import Spinner from "./components/Spinner";
 
 const AuthChecker = ({ children }) => {
   const navigate = useNavigate();
@@ -24,7 +26,7 @@ const AuthChecker = ({ children }) => {
   }, [navigate]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="relative h-[100vh]"><Spinner/></div>;
   }
 
   return children;
@@ -35,7 +37,7 @@ function App() {
     <Router>
       <AuthChecker>
         <Routes>
-          <Route path="/" element={<h1>Home</h1>} />
+          <Route path="/" element={<Dashboard/>} />
           <Route path="/sign-in" element={<SignIn />} />
           <Route path="/complete-sign-up" element={<CompleteSignup />} />
         </Routes>
