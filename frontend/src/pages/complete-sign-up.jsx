@@ -27,7 +27,7 @@ const CompleteSignup = () => {
             setLoading(false);
           }
         } catch (error) {
-          toast.error('An error occured, please refresh page')
+          toast.error("An error occured, please refresh page");
         }
       } else {
         setLoading(false);
@@ -54,16 +54,22 @@ const CompleteSignup = () => {
 
     setLoading(true);
     try {
-      const response = await fetch("/api/completeSignup", {
-        method: "POST",
-        body: JSON.stringify({ username }),
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
+      const response = await fetch(
+        "http://localhost:5000/api/user/completeSignup",
+        {
+          method: "POST",
+          body: JSON.stringify({ username }),
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
       const data = await response.json();
-      setLoading(false);
+      if (response.status == 200) {
+        navigate("/");
+        setLoading(false);
+      }
     } catch (error) {
       toast.error("An error occured");
       console.log(error?.message);
