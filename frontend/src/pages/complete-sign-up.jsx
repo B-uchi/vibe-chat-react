@@ -13,18 +13,21 @@ const CompleteSignup = () => {
   const [error, setError] = useState(false);
   const [username, setUsername] = useState("");
   const navigate = useNavigate();
-  const [authLoading, setAuthLoading] = useState(null)
-
+  const [authLoading, setAuthLoading] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.data()?.userName) {
-          setLoading(false);
-          navigate("/");
-        } else {
-          setLoading(false);
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.data()?.userName) {
+            setLoading(false);
+            navigate("/");
+          } else {
+            setLoading(false);
+          }
+        } catch (error) {
+          toast.error('An error occured, please refresh page')
         }
       } else {
         setLoading(false);
@@ -35,7 +38,6 @@ const CompleteSignup = () => {
 
     return () => unsubscribe();
   }, [navigate]);
-
 
   const submitUsername = async () => {
     const usernameRegex = /^[a-zA-Z0-9]{4,16}$/;
