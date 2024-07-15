@@ -1,10 +1,29 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FaRegUserCircle } from "react-icons/fa";
+import { RxCaretDown, RxCaretUp } from "react-icons/rx";
+import { IoSettingsOutline } from "react-icons/io5";
+import { GoSignOut } from "react-icons/go";
+import { signOut } from "firebase/auth";
+import { auth } from "../lib/firebaseConfig";
+import { toast } from "sonner";
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const signOutUser = () => {
+    signOut(auth).then(()=>{
+      setShowDropdown(false)
+      navigate('/sign-in')
+    }).catch((error)=>{
+      console.log(error)
+      toast.error('An error occurred. Please try again.')
+    })
+  }
+
   return (
-    <nav className="bg-[#313131] w-full h-[8vh]">
+    <nav className="bg-[#313131] w-full h-[8vh] relative">
       <div className="container mx-auto text-white flex justify-between items-center p-3">
         <div
           onClick={() => {
@@ -14,10 +33,35 @@ const Navbar = () => {
         >
           <h1 className="font-bold font-rowdies text-2xl">Vibe Chat</h1>
         </div>
-        <div className="font-poppins">User</div>
+        <div className="font-poppins">
+          <button
+            className="flex gap-1 items-center"
+            onClick={() => setShowDropdown(!showDropdown)}
+          >
+            <FaRegUserCircle size={24} />
+            {showDropdown ? <RxCaretUp size={24} /> : <RxCaretDown size={24} />}
+          </button>
+        </div>
       </div>
+      {showDropdown && (
+        <div className="absolute lg:right-5 bottom-0 translate-y-[120%] bg-white shadow-md p-2 rounded-md w-[200px]">
+          <ul className="flex flex-col font-poppins">
+            <li
+              onClick={() => {navigate("/settings"); setShowDropdown(false)}}
+              className="border-b-[1px] border-b-slate-300 p-2 flex gap-1 items-center cursor-pointer hover:bg-[#efefef] rounded-t-md"
+            >
+              <IoSettingsOutline /> Settings
+            </li>
+            <li onClick={signOutUser} className="p-2 flex gap-1 items-center cursor-pointer hover:bg-[#efefef] rounded-b-md">
+              <GoSignOut />
+              Sign Out
+            </li>
+          </ul>
+        </div>
+      )}
     </nav>
   );
+  ``;
 };
 
 export default Navbar;
