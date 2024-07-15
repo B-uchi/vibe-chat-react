@@ -4,6 +4,7 @@ import {
   Routes,
   Navigate,
   useNavigate,
+  useLocation,
 } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
@@ -15,6 +16,7 @@ import Dashboard from "./pages/Dashboard";
 import Spinner from "./components/Spinner";
 import { toast } from "sonner";
 import Navbar from "./components/Navbar";
+import Settings from "./pages/Settings";
 
 const AuthChecker = ({ children }) => {
   const navigate = useNavigate();
@@ -45,23 +47,27 @@ const AuthChecker = ({ children }) => {
 };
 
 function App() {
+  const location = useLocation();
+  const hideNavbarRoutes = ["/sign-in", "/complete-sign-up"];
+
   return (
-    <Router>
-      <AuthChecker>
-        <div className="flex flex-col h-screen">
+    <AuthChecker>
+      <div className="flex flex-col h-screen">
+        {!hideNavbarRoutes.includes(location.pathname) && (
           <div className="sticky top-0 z-30">
             <Navbar />
           </div>
-          <div className="flex-1 overflow-auto">
-            <Routes>
-              <Route path="/sign-in" element={<SignIn />} />
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/complete-sign-up" element={<CompleteSignup />} />
-            </Routes>
-          </div>
+        )}
+        <div className="flex-1 overflow-auto">
+          <Routes>
+            <Route path="/sign-in" element={<SignIn />} />
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/complete-sign-up" element={<CompleteSignup />} />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
         </div>
-      </AuthChecker>
-    </Router>
+      </div>
+    </AuthChecker>
   );
 }
 
