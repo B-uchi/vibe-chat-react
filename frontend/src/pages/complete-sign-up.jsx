@@ -30,7 +30,8 @@ const CompleteSignup = () => {
       if (user) {
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
-          if (userDoc.data()?.userName) {
+          
+          if (userDoc.data().profileData.username) {
             setLoading(false);
             navigate("/");
           } else {
