@@ -1,9 +1,9 @@
-// import {defaultFirestore} from "../util/firebase/firebaseConfig.js";
-import { getFirestore } from "firebase-admin/firestore";
-import { getAuth } from "firebase-admin/auth";
+import * as admin from '../util/firebase/config.js'
+// import { getFirestore } from "firebase-admin/firestore";
+// import { getAuth } from "firebase-admin/auth";
 
-const db = getFirestore();
-const auth = getAuth();
+// const db = getFirestore();
+// const auth = getAuth();
 
 export const setUsername = async (req, res) => {
   console.log("req received to completeSignup");

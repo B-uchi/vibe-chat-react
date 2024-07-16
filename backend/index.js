@@ -3,6 +3,7 @@ import dotenv from 'dotenv'
 import cors from 'cors'
 import bodyParser from 'body-parser'
 import userRoutes from './routes/userRoutes.js'
+
 dotenv.config()
 
 const PORT = process.env.PORT || 5555;
