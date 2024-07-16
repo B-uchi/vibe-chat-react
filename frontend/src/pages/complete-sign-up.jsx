@@ -1,11 +1,13 @@
 import Spinner from "../components/Spinner";
 import { useAuth } from "../lib/hooks/useAuth.jsx";
-import { db, auth } from "../lib/firebaseConfig";
+import { db, auth, storage } from "../lib/firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Toaster, toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
+import { CiCamera } from "react-icons/ci";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const CompleteSignup = () => {
   const user = useAuth().user;
@@ -14,6 +16,11 @@ const CompleteSignup = () => {
   const [username, setUsername] = useState("");
   const navigate = useNavigate();
   const [authLoading, setAuthLoading] = useState(null);
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState(null);
+  const imageInput = document.querySelector("#imageInput");
+  const [userId, setUserId] = useState(null);
+  const [imageStorageUrl, setImageStorageUrl] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -24,6 +31,7 @@ const CompleteSignup = () => {
             setLoading(false);
             navigate("/");
           } else {
+            setUserId(userDoc.data()?.id);
             setLoading(false);
           }
         } catch (error) {
@@ -38,6 +46,22 @@ const CompleteSignup = () => {
 
     return () => unsubscribe();
   }, [navigate]);
+
+  const selectProfilePhoto = () => {
+    imageInput.click();
+  };
+
+  function validateImage(image) {
+    if (image && image.size > 3 * 1024 * 1024) {
+      if (!image.type.startsWith("image/")) {
+        alert("Please select a valid image file (3MB or less).");
+        fileInput.value = "";
+      } else {
+        setProfilePhotoUrl(URL.createObjectURL(image));
+        setProfilePhoto(image);
+      }
+    }
+  }
 
   const submitUsername = async () => {
     const usernameRegex = /^[a-zA-Z0-9]{4,16}$/;
@@ -58,7 +82,7 @@ const CompleteSignup = () => {
         "http://localhost:5000/api/user/completeSignup",
         {
           method: "POST",
-          body: JSON.stringify({ username }),
+          body: JSON.stringify({ username , photoId: imageStorageUrl}),
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${idToken}`,
@@ -75,19 +99,65 @@ const CompleteSignup = () => {
       console.log(error?.message);
     }
   };
+
+  const uploadProfilePhoto = async () => {
+    const storageRef = ref(
+      storage,
+      `kyc/${userId}.${profilePhoto.type.split("/")[1]}`
+    );
+    await uploadBytes(storageRef, profilePhoto).then(async (snapshot) => {
+      setImageStorageUrl(await getDownloadURL(storageRef));
+      submitUsername()
+    })
+  };
+
   return (
     <div className="relative h-[100vh] bg-[#efefef] flex justify-center items-center">
       <Toaster position="top-right" richColors />
       {loading ? (
         <Spinner />
       ) : (
-        <div className="bg-white p-5 rounded-md border-[1px] border-[#3333333a] shadow">
+        <div className="bg-white p-5 rounded-md border-[1px] border-[#3333333a] shadow flex flex-col">
           <h1 className="font-rowdies text-3xl font-bold text-[#333333]">
             Welcome Onboard...
           </h1>
           <p className="font-poppins">
-            Great to have you! Now let&apos;s give you a username.
+            Great to have you! Now let&apos;s get you set up.
           </p>
+          {profilePhotoUrl && (
+            <button className="relative mx-auto" onClick={selectProfilePhoto}>
+              <img
+                src={profilePhotoUrl}
+                className="w-[80px] rounded-full h-[80px] "
+                alt=""
+              />
+              <input
+                type="file"
+                id="imageInput"
+                accept="image/*"
+                onChange={(e) => validateImage(e.target.files[0])}
+                className="hidden"
+              />
+              <div className="absolute top-[0%] bg-slate-200 w-full h-full rounded-full flex justify-center items-center bg-opacity-30">
+                <CiCamera size={25} color="black" />
+              </div>
+            </button>
+          )}
+          {!profilePhotoUrl && (
+            <button
+              onClick={selectProfilePhoto}
+              className="bg-[#efefef] w-fit mx-auto rounded-full p-7 mt-3"
+            >
+              <CiCamera size={45} />
+              <input
+                type="file"
+                id="imageInput"
+                accept="image/*"
+                onChange={(e) => validateImage(e.target.files[0])}
+                className="hidden"
+              />
+            </button>
+          )}
           <div className="">
             <div className="flex items-center mt-5 gap-2">
               <p>vibe.com/@</p>
@@ -117,7 +187,7 @@ const CompleteSignup = () => {
             )}
             <button
               type="submit"
-              onClick={() => submitUsername()}
+              onClick={() => uploadProfilePhoto()}
               className="hover:bg-[#3333339f] bg-[#333333] text-white rounded-md font-rowdies w-full p-2 mt-5"
             >
               Continue
