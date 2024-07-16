@@ -17,14 +17,36 @@ import Spinner from "./components/Spinner";
 import { toast } from "sonner";
 import Navbar from "./components/Navbar";
 import Settings from "./pages/Settings";
+import { connect, useDispatch, useSelector } from "react-redux";
+import { setCurrentUser } from "./redux/userReducer/userAction";
 
 const AuthChecker = ({ children }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  const currentUser = useSelector(({ user }) => user.currentUser);
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        setLoading(false);
+        if (!currentUser) {
+          const idToken = await user.getIdToken(true);
+          setLoading(false);
+          const response = await fetch(
+            "http://localhost:5000/api/user/getUser",
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${idToken}`,
+              },
+            }
+          );
+          const data = await response.json();
+          if (response.status == 200) {
+            dispatch(setCurrentUser(data.userData));
+          }
+        }
       } else {
         setLoading(false);
         toast.error("Session expired. Please sign in again.");
@@ -71,4 +93,7 @@ function App() {
   );
 }
 
-export default App;
+const mapDispatchToProps = (dispatch) => ({
+  setCurrentUser: (user) => dispatch(setCurrentUser(user)),
+});
+export default connect(null, mapDispatchToProps)(App);
