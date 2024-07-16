@@ -7,24 +7,29 @@ import { GoSignOut } from "react-icons/go";
 import { signOut } from "firebase/auth";
 import { auth } from "../lib/firebaseConfig";
 import { toast } from "sonner";
+import { connect } from "react-redux";
+import { clearCurrentUser } from "../redux/userReducer/userAction";
 
-const Navbar = () => {
+const Navbar = ({ currentUser, clearCurrentUser }) => {
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
 
   const signOutUser = () => {
-    signOut(auth).then(()=>{
-      setShowDropdown(false)
-      navigate('/sign-in')
-    }).catch((error)=>{
-      console.log(error)
-      toast.error('An error occurred. Please try again.')
-    })
-  }
+    signOut(auth)
+      .then(() => {
+        setShowDropdown(false);
+        clearCurrentUser();
+        navigate("/sign-in");
+      })
+      .catch((error) => {
+        console.log(error);
+        toast.error("An error occurred. Please try again.");
+      });
+  };
 
   return (
-    <nav className="bg-[#313131] w-full h-[8vh] relative">
-      <div className="container mx-auto text-white flex justify-between items-center p-3">
+    <nav className="bg-[#313131] w-full relative">
+      <div className="container mx-auto text-white flex justify-between items-center p-2">
         <div
           onClick={() => {
             navigate("/");
@@ -38,7 +43,14 @@ const Navbar = () => {
             className="flex gap-1 items-center"
             onClick={() => setShowDropdown(!showDropdown)}
           >
-            <FaRegUserCircle size={24} />
+            {currentUser && !currentUser.profileData.profilePhoto ? (
+              <FaRegUserCircle size={24} />
+            ) : (
+              <img
+                className="w-[30px] h-[30px] rounded-full"
+                src={currentUser && currentUser.profileData.profilePhoto}
+              />
+            )}
             {showDropdown ? <RxCaretUp size={24} /> : <RxCaretDown size={24} />}
           </button>
         </div>
@@ -47,12 +59,18 @@ const Navbar = () => {
         <div className="absolute lg:right-5 bottom-0 translate-y-[120%] bg-white shadow-md p-2 rounded-md w-[200px]">
           <ul className="flex flex-col font-poppins">
             <li
-              onClick={() => {navigate("/settings"); setShowDropdown(false)}}
+              onClick={() => {
+                navigate("/settings");
+                setShowDropdown(false);
+              }}
               className="border-b-[1px] border-b-slate-300 p-2 flex gap-1 items-center cursor-pointer hover:bg-[#efefef] rounded-t-md"
             >
               <IoSettingsOutline /> Settings
             </li>
-            <li onClick={signOutUser} className="p-2 flex gap-1 items-center cursor-pointer hover:bg-[#efefef] rounded-b-md">
+            <li
+              onClick={signOutUser}
+              className="p-2 flex gap-1 items-center cursor-pointer hover:bg-[#efefef] rounded-b-md"
+            >
               <GoSignOut />
               Sign Out
             </li>
@@ -64,4 +82,10 @@ const Navbar = () => {
   ``;
 };
 
-export default Navbar;
+const mapStateToProps = ({ user }) => ({
+  currentUser: user.currentUser,
+});
+const mapDispatchToProps = (dispatch) => ({
+  clearCurrentUser: dispatch(clearCurrentUser()),
+});
+export default connect(mapStateToProps, mapDispatchToProps)(Navbar);
