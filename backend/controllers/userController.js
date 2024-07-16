@@ -27,7 +27,7 @@ export const setUsername = async (req, res) => {
 export const getUser = async (req, res) => {
   console.log('req recieved to getUser')
   try {
-    const userRef = db.collection(users).doc(req.uid)
+    const userRef = db.collection('users').doc(req.uid)
     const userData = (await userRef.get()).data()
     return res.status(200).json({userData})
   } catch (error) {
