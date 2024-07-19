@@ -7,18 +7,20 @@ import { GoSignOut } from "react-icons/go";
 import { signOut } from "firebase/auth";
 import { auth } from "../lib/firebaseConfig";
 import { toast } from "sonner";
-import { connect } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { clearCurrentUser } from "../redux/userReducer/userAction";
 
-const Navbar = ({ currentUser, clearCurrentUser }) => {
+const Navbar = () => {
+  const dispatch = useDispatch();
+  const currentUser = useSelector(({ user }) => user.currentUser);
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
-
+  
   const signOutUser = () => {
     signOut(auth)
       .then(() => {
         setShowDropdown(false);
-        clearCurrentUser();
+        dispatch(clearCurrentUser);
         navigate("/sign-in");
       })
       .catch((error) => {
@@ -82,10 +84,4 @@ const Navbar = ({ currentUser, clearCurrentUser }) => {
   ``;
 };
 
-const mapStateToProps = ({ user }) => ({
-  currentUser: user.currentUser,
-});
-const mapDispatchToProps = (dispatch) => ({
-  clearCurrentUser: dispatch(clearCurrentUser()),
-});
-export default connect(mapStateToProps, mapDispatchToProps)(Navbar);
+export default Navbar;
