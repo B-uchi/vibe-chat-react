@@ -79,7 +79,6 @@ const Navbar = ({ currentUser, clearCurrentUser }) => {
       )}
     </nav>
   );
-  ``;
 };
 
 const mapStateToProps = ({ user }) => ({
