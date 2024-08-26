@@ -70,8 +70,10 @@ const SignIn = () => {
       await setDoc(doc(db, "users", user.uid), {
         id: user.uid,
         email: user.email,
+        profileData: {},
         firstName,
         lastName,
+        onlineStatus: false,
         createdAt: new Date().toISOString(),
       });
 

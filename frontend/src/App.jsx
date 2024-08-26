@@ -74,13 +74,13 @@ function App() {
 
   return (
     <AuthChecker>
-      <div className="flex flex-col h-screen">
+      <div className="flex flex-col h-screen w-screen">
         {!hideNavbarRoutes.includes(location.pathname) && (
           <div className="sticky top-0 z-30">
             <Navbar />
           </div>
         )}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-x-hidden">
           <Routes>
             <Route path="/sign-in" element={<SignIn />} />
             <Route path="/" element={<Dashboard />} />

@@ -7,57 +7,93 @@ import ChatWindow from "../components/ChatWindow";
 import { IoSearch } from "react-icons/io5";
 import { IoMdArrowBack } from "react-icons/io";
 import { useAuth } from "../lib/hooks/useAuth";
+import { setActiveChat } from "../redux/chatReducer/chatAction";
+import { connect } from "react-redux";
 
 const Dashboard = () => {
-  const [addPersonModal, setAddPersonModal] = useState(true);
+  const [addPersonModal, setAddPersonModal] = useState(false);
   const [users, setUsers] = useState([]);
+  const [chatCreated, setChatCreated] = useState(false);
+  const [loading, setLoading] = useState(true);
   const user = useAuth().user;
-  console.log(users);
 
-  useEffect(() => {
-    const fetchOtherUsers = async () => {
-      const idToken = await user.getIdToken(true);
-      const response = await fetch(
-        "http://localhost:5000/api/user/getOtherUsers",
-        {
-          method: "GET",
-          headers: {
-            "Content-type": "application/json",
-            Authorization: `Bearer ${idToken}`,
-          },
-        }
-      );
-      if (response.status == 200) {
-        const data = await response.json();
-        setUsers(data.otherUsers);
+  const fetchOtherUsers = async () => {
+    const idToken = await user.getIdToken(true);
+    const response = await fetch(
+      "http://localhost:5000/api/user/getOtherUsers",
+      {
+        method: "GET",
+        headers: {
+          "Content-type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
       }
-    };
-    fetchOtherUsers();
-  }, [addPersonModal]);
+    );
+    if (response.status == 200) {
+      const data = await response.json();
+      setLoading(false)
+      setUsers(data.otherUsers);
+    }else{
+      setLoading(false)
+    }
+  };
+
+  const createChat = async (id, username, profilePhoto, onlineStatus) => {
+    const idToken = await user.getIdToken(true);
+    const response = await fetch("http://localhost:5000/api/chat/createChat", {
+      method: "POST",
+      body: JSON.stringify({ otherUserId: id }),
+      headers: {
+        "Content-type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+    });
+    if (response.status == 201) {
+      toast.success("Chat created");
+      const data = await response.json();
+      setChatCreated(!chatCreated);
+      setActiveChat({
+        username,
+        profilePhoto,
+        onlineStatus,
+        chatId: data.chatId,
+        participantId: id
+      });
+    } else {
+      if (response.status == 409) {
+        return toast("chat already exists");
+      }
+      toast.error("Error creating chat");
+      console.log("Error creating chat");
+    }
+  };
 
   return (
-    <div className="relative h-full flex bg-[#efefef]">
+    <div className=" h-full flex bg-[#efefef]">
       <Toaster richColors position="top-right" />
-      <div className="bg-[#ffffff] w-[30%] border-r-[1px] border-r-[#d3d2d2]">
-        <Chats />
+      <div className="bg-[#ffffff] lg:w-[30%] relative md:w-fit border-r-[1px] border-r-[#d3d2d2]">
+        <Chats chatCreated={chatCreated} />
+        <div className="absolute right-10 bottom-10">
+          <div>
+            <button
+              onClick={() => {
+                setAddPersonModal(true);
+                fetchOtherUsers();
+              }}
+              className="shadow-lg p-2 flex justify-center items-center rounded-full bg-[#313131] text-white hover:bg-[#686868] transition-all"
+            >
+              <FiPlus size={40} />
+            </button>
+          </div>
+        </div>
       </div>
       <div className="flex-grow border-r-[1px] border-r-[#d3d2d2]">
         <ChatWindow />
       </div>
-      <div className="absolute right-10 bottom-10">
-        <div>
-          <button
-            onClick={() => setAddPersonModal(true)}
-            className="shadow-lg p-2 flex justify-center items-center rounded-full bg-[#313131] text-white hover:bg-[#686868] transition-all"
-          >
-            <FiPlus size={40} />
-          </button>
-        </div>
-      </div>
       {addPersonModal && (
         <div className="bg-[rgba(0,0,0,0.4)] bg-opacity-50 w-full h-full absolute flex justify-center items-center">
-          <div className="relative bg-white rounded-md border-[1px] border-[#e1e1e1] w-1/3 h-[80%] p-3">
-            <div className="flex items-center border-b-[1px] border-[#e1e1e1]">
+          <div className="relative bg-white rounded-md border-[1px] border-[#e1e1e1] lg:w-1/3 h-[80%] overflow-auto p-3 flex flex-col">
+            <div className="flex gap-4 items-center border-b-[1px] border-[#e1e1e1] mb-2">
               <button className="mr-2" onClick={() => setAddPersonModal(false)}>
                 <IoMdArrowBack size={25} />
               </button>
@@ -71,13 +107,47 @@ const Dashboard = () => {
                 />
               </div>
             </div>
-            {users && users.length > 0 ? (
-              <div>dddd</div>
-            ) : (
-              <p className="absolute right-[50%] bottom-[50%] translate-x-[50%]">
-                No users found
-              </p>
-            )}
+            <div className="flex-grow relative">
+              {loading ? (
+                <div className="loader-black absolute right-[50%] bottom-[50%] translate-x-[50%]"></div>
+              ) : users && users.length > 0 ? (
+                users.map((user) => (
+                  <div
+                    onClick={() => {
+                      createChat(
+                        user.id,
+                        user.username,
+                        user.profilePhoto,
+                        user.onlineStatus,
+                      );
+                    }}
+                    key={user.id}
+                    className="hover:bg-[#efefef] rounded-md p-2 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={user.profilePhoto}
+                        alt=""
+                        className="w-[50px] h-[50px] rounded-full"
+                      />
+                      <div className="">
+                        <p className="font-poppins font-bold">
+                          Username:{" "}
+                          <span className="font-normal">{user.username}</span>
+                        </p>
+                        <small className="font-poppins line-clamp-1">
+                          Bio: {user.bio}
+                        </small>
+                      </div>{" "}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="absolute right-[50%] bottom-[50%] translate-x-[50%]">
+                  No users found
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -85,4 +155,8 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+const mapDispatchToProps = (dispatch) => ({
+  setActiveChat: () => dispatch(setActiveChat()),
+});
+
+export default connect(null, mapDispatchToProps)(Dashboard);

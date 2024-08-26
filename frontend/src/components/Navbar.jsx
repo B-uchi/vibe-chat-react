@@ -58,7 +58,7 @@ const Navbar = () => {
         </div>
       </div>
       {showDropdown && (
-        <div className="absolute lg:right-5 bottom-0 translate-y-[120%] bg-white shadow-md p-2 rounded-md w-[200px]">
+        <div className="absolute lg:right-5 bottom-0 right-2 translate-y-[120%] bg-white shadow-md p-2 rounded-md w-[200px]">
           <ul className="flex flex-col font-poppins">
             <li
               onClick={() => {

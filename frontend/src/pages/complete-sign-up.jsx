@@ -39,6 +39,7 @@ const CompleteSignup = () => {
             setLoading(false);
           }
         } catch (error) {
+          console.log(error)
           setLoadingError(true);
           setLoading(false);
           toast.error("An error occured, please refresh page");
