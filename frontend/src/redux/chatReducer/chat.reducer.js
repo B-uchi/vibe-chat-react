@@ -2,6 +2,7 @@ const INITIAL_USER_STATE = {
   activeChat: null,
   messages: null,
   userChats: null,
+  chatWindowSize: "large",
 };
 
 const chatReducer = (state = INITIAL_USER_STATE, action) => {
@@ -15,6 +16,11 @@ const chatReducer = (state = INITIAL_USER_STATE, action) => {
       return {
         ...state,
         userChats: action.payload,
+      };
+    case "SET_CHAT_WINDOW_SIZE":
+      return {
+        ...state,
+        chatWindowSize: action.payload,
       };
     case "SET_MESSAGES":
       return {
