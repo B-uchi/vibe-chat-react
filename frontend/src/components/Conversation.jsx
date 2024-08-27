@@ -12,9 +12,15 @@ const Conversation = ({ data, onClick }) => {
   } = data;
 
   function convertTimestampToTime(timestamp) {
-    const date = new Date(
-      timestamp._seconds * 1000 + timestamp._nanoseconds / 1000000
-    );
+    let seconds, nanoseconds;
+    if (timestamp.seconds && timestamp.nanoseconds) {
+      seconds = timestamp.seconds
+      nanoseconds = timestamp.namoseconds
+    }
+    seconds = timestamp.seconds || timestamp._seconds;
+    nanoseconds = timestamp.nanoseconds || timestamp._nanoseconds;
+
+    const date = new Date(seconds * 1000 + nanoseconds / 1000000);
     const now = new Date();
 
     // Subtract one day from the current date
@@ -28,21 +34,17 @@ const Conversation = ({ data, onClick }) => {
       });
     } else {
       if (date.getHours() < 12) {
-        return (
-          date.toLocaleTimeString("en-US", {
-            hour12: true,
-            hour: "numeric",
-            minute: "numeric",
-          })
-        );
+        return date.toLocaleTimeString("en-US", {
+          hour12: true,
+          hour: "numeric",
+          minute: "numeric",
+        });
       } else {
-        return (
-          date.toLocaleTimeString("en-US", {
-            hour12: true,
-            hour: "numeric",
-            minute: "numeric",
-          })
-        );
+        return date.toLocaleTimeString("en-US", {
+          hour12: true,
+          hour: "numeric",
+          minute: "numeric",
+        });
       }
     }
   }
@@ -52,20 +54,20 @@ const Conversation = ({ data, onClick }) => {
       onClick={() =>
         onClick({ username, profilePhoto, onlineStatus, chatId, participantId })
       }
-      className="flex justify-between items-center cursor-pointer hover:bg-[#efefef] rounded-md"
+      className="flex items-center cursor-pointer hover:bg-[#efefef] rounded-md"
     >
-      <div className="flex items-center gap-2 p-2 w-fit lg:w-[85%]">
+      <div className="flex items-center gap-2 p-2 w-[80%] lg:w-[85%]">
         <img className="rounded-full w-[40px] h-[40px]" src={profilePhoto} />
-        <div>
+        <div className="w-full">
           <h3 className="font-bold">{username}</h3>
           {lastMessage ? (
-            <p className="text-sm line-clamp-1 w-[90%]">{lastMessage}</p>
+            <p className="text-sm line-clamp-1 max-w-[90%] break-words">{lastMessage}</p>
           ) : (
             <p className="text-sm italics">You havent sent a message yet</p>
           )}
         </div>
       </div>
-      <div className="flex flex-col items-end mr-2 w-[15%]">
+      <div className="flex flex-col items-end mr-2 w-[20%] lg:w-[15%]">
         <small>{convertTimestampToTime(timestamp)}</small>
         <div className="bg-[#313131] text-white text-[10px] font-bold p-1 px-2.5 rounded-full">
           1
