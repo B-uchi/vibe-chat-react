@@ -24,6 +24,7 @@ const AuthChecker = ({ children }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const dispatch = useDispatch();
+  const [error, setError] = useState(false);
   const currentUser = useSelector(({ user }) => user.currentUser);
 
   useEffect(() => {
@@ -32,19 +33,29 @@ const AuthChecker = ({ children }) => {
         if (!currentUser) {
           const idToken = await user.getIdToken(true);
           setLoading(false);
-          const response = await fetch(
-            "http://localhost:5000/api/user/getUser",
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${idToken}`,
-              },
+          try {
+            const response = await fetch(
+              "http://localhost:5000/api/user/getUser",
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${idToken}`,
+                },
+              }
+            );
+            const data = await response.json();
+            if (response.status == 200) {
+              dispatch(setCurrentUser(data.userData));
+            } else {
+              setLoading(false);
+              setError(true);
+              toast.error("Network error");
             }
-          );
-          const data = await response.json();
-          if (response.status == 200) {
-            dispatch(setCurrentUser(data.userData));
+          } catch (error) {
+            setError(true);
+            toast.error("Network error");
+            console.log("Error: ", error);
           }
         }
       } else {
@@ -61,6 +72,14 @@ const AuthChecker = ({ children }) => {
     return (
       <div className="relative h-[100vh]">
         <Spinner />
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="relative h-[100vh]">
+        <h1>An error occured</h1>
       </div>
     );
   }
