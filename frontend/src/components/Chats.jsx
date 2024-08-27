@@ -2,8 +2,10 @@ import { IoSearch } from "react-icons/io5";
 import Conversation from "./Conversation";
 import { connect, useSelector } from "react-redux";
 import {
+  clearActiveChat,
   clearMessages,
   setActiveChat,
+  setChatWindowSize,
   setUserChats,
 } from "../redux/chatReducer/chatAction";
 import { useEffect, useState } from "react";
@@ -19,6 +21,7 @@ const Chats = ({
   chatCreated,
   clearMessages,
   activeChat,
+  setChatWindowSize,
 }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -68,9 +71,12 @@ const Chats = ({
             const modifiedChatId = change.doc.id;
             const modifiedChatData = change.doc.data();
 
-            const matchingChatIndex = userChats.findIndex(
-              (userChat) => userChat.chatId === modifiedChatId
-            );
+            let matchingChatIndex = -1;
+            if (userChats) {
+              matchingChatIndex = userChats.findIndex(
+                (userChat) => userChat.chatId === modifiedChatId
+              );
+            }
 
             if (matchingChatIndex !== -1) {
               userChats[matchingChatIndex] = {
@@ -78,7 +84,6 @@ const Chats = ({
                 lastMessage: modifiedChatData.lastMessage,
                 lastMessageTimeStamp: modifiedChatData.lastMessageTimeStamp,
               };
-
               setUserChats([...userChats]); // Trigger a re-render
             }
           }
@@ -88,15 +93,30 @@ const Chats = ({
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [userChats, activeChat]);
 
   const openChatWindow = (chatDetails) => {
     if (activeChat) {
       if (activeChat.chatId != chatDetails.chatId) {
+        if (screen.width < 769) {
+          clearActiveChat();
+          setChatWindowSize("small");
+        } else {
+          setChatWindowSize("large");
+        }
         clearMessages();
         setActiveChat(chatDetails);
+      } else if (activeChat.chatId == chatDetails.chatId && screen.width < 769) {
+        setChatWindowSize("small");
+        clearActiveChat();
       }
     } else {
+      if (screen.width < 769) {
+        setChatWindowSize("small");
+        clearActiveChat();
+      } else {
+        setChatWindowSize("large");
+      }
       setActiveChat(chatDetails);
     }
   };
@@ -159,6 +179,7 @@ const mapDispatchToProps = (dispatch) => ({
   setActiveChat: (chat) => dispatch(setActiveChat(chat)),
   setUserChats: (chatList) => dispatch(setUserChats(chatList)),
   clearMessages: () => dispatch(clearMessages()),
+  setChatWindowSize: (size) => dispatch(setChatWindowSize(size)),
 });
 const mapStateToProps = (state) => ({
   userChats: state.chat.userChats,
