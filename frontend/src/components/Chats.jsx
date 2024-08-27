@@ -8,6 +8,9 @@ import {
 } from "../redux/chatReducer/chatAction";
 import { useEffect, useState } from "react";
 import { useAuth } from "../lib/hooks/useAuth";
+import { toast } from "sonner";
+import { db } from "../lib/firebaseConfig";
+import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
 
 const Chats = ({
   setActiveChat,
@@ -18,33 +21,82 @@ const Chats = ({
   activeChat,
 }) => {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const user = useAuth().user;
 
   useEffect(() => {
     const fetchUserChats = async () => {
-      const idToken = await user.getIdToken(true);
-      const response = await fetch("http://localhost:5000/api/user/getChats", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-      if (response.status == 200) {
-        const data = await response.json();
-        setUserChats(data.chats);
+      try {
+        const idToken = await user.getIdToken(true);
+        const response = await fetch(
+          "http://localhost:5000/api/user/getChats",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${idToken}`,
+            },
+          }
+        );
+        if (response.status == 200) {
+          const data = await response.json();
+          setUserChats(data.chats);
+          setLoading(false);
+          setError(false);
+        } else {
+          setLoading(false);
+          setError(true);
+        }
+      } catch (error) {
+        toast.error("A network error occured.");
         setLoading(false);
-      } else {
-        setLoading(false);
+        setError(true);
       }
-      console.log(response.status)
     };
     fetchUserChats();
   }, [chatCreated]);
 
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      query(
+        collection(db, "chats"),
+        where("participants", "array-contains", user.uid)
+      ),
+      (doc) => {
+        doc.docChanges().forEach((change) => {
+          if (change.type === "modified") {
+            const modifiedChatId = change.doc.id;
+            const modifiedChatData = change.doc.data();
+
+            const matchingChatIndex = userChats.findIndex(
+              (userChat) => userChat.chatId === modifiedChatId
+            );
+
+            if (matchingChatIndex !== -1) {
+              userChats[matchingChatIndex] = {
+                ...userChats[matchingChatIndex],
+                lastMessage: modifiedChatData.lastMessage,
+                lastMessageTimeStamp: modifiedChatData.lastMessageTimeStamp,
+              };
+
+              setUserChats([...userChats]); // Trigger a re-render
+            }
+          }
+        });
+      }
+    );
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   const openChatWindow = (chatDetails) => {
-    if (activeChat.chatId != chatDetails.chatId) {
-      clearMessages();
+    if (activeChat) {
+      if (activeChat.chatId != chatDetails.chatId) {
+        clearMessages();
+        setActiveChat(chatDetails);
+      }
+    } else {
       setActiveChat(chatDetails);
     }
   };
@@ -75,6 +127,10 @@ const Chats = ({
       <div className="mt-2 overflow-auto flex-grow">
         {loading ? (
           <div className="loader-black absolute right-[50%] bottom-[50%] translate-x-[50%]"></div>
+        ) : error ? (
+          <div className="absolute right-[50%] bottom-[50%] translate-x-[50%]">
+            An error occured
+          </div>
         ) : userChats && userChats.length > 0 ? (
           userChats.map((chat) => (
             <Conversation
@@ -86,7 +142,7 @@ const Chats = ({
                 onlineStatus: chat.participantsData.onlineStatus,
                 lastMessage: chat.lastMessage,
                 username: chat.participantsData.username,
-                timestamp: "1:55 pm",
+                timestamp: chat.lastMessageTimeStamp,
                 profilePhoto: chat.participantsData.profilePhoto,
               }}
             />
