@@ -71,7 +71,7 @@ const Dashboard = () => {
   return (
     <div className=" h-full flex bg-[#efefef]">
       <Toaster richColors position="top-right" />
-      <div className="bg-[#ffffff] lg:w-[30%] relative md:w-fit border-r-[1px] border-r-[#d3d2d2]">
+      <div className="bg-[#ffffff] lg:w-[30%] relative md:w-[50%] border-r-[1px] border-r-[#d3d2d2]">
         <Chats chatCreated={chatCreated} />
         <div className="absolute right-10 bottom-10">
           <div>
@@ -87,7 +87,7 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-      <div className="flex-grow border-r-[1px] border-r-[#d3d2d2]">
+      <div className="flex-grow md:w-[50%] border-r-[1px] border-r-[#d3d2d2]">
         <ChatWindow />
       </div>
       {addPersonModal && (
