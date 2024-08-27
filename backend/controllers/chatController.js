@@ -54,14 +54,17 @@ export const fetchMessages = async (req, res) => {
       .collection("chats")
       .doc(chatId)
       .collection("messages")
-      .orderBy("timeStamp", "desc")
+      .orderBy("timeStamp", "asc")
       .get();
 
-    const messages = messagesSnapshot.docs.map((doc) => doc.data());
+    const messages = messagesSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
 
     return res.status(200).json({ messages });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     return res.status(500).json({ message: error });
   }
 };
