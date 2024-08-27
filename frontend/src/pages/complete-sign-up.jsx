@@ -92,7 +92,8 @@ const CompleteSignup = () => {
       `kyc/${userId}.${profilePhoto.type.split("/")[1]}`
     );
     await uploadBytes(storageRef, profilePhoto).then(async (snapshot) => {
-      setImageStorageUrl(await getDownloadURL(storageRef));
+      const imgUrl = await getDownloadURL(storageRef)
+      setImageStorageUrl(imgUrl);
       setUploading(false);
       setLoading(true);
       try {
@@ -107,7 +108,6 @@ const CompleteSignup = () => {
             },
           }
         );
-        const data = await response.json();
         if (response.status == 200) {
           navigate("/");
           setLoading(false);
