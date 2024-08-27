@@ -10,7 +10,7 @@ import { useAuth } from "../lib/hooks/useAuth";
 import { setActiveChat } from "../redux/chatReducer/chatAction";
 import { connect } from "react-redux";
 
-const Dashboard = () => {
+const Dashboard = ({chatWindowSize}) => {
   const [addPersonModal, setAddPersonModal] = useState(false);
   const [users, setUsers] = useState([]);
   const [chatCreated, setChatCreated] = useState(false);
@@ -31,10 +31,10 @@ const Dashboard = () => {
     );
     if (response.status == 200) {
       const data = await response.json();
-      setLoading(false)
+      setLoading(false);
       setUsers(data.otherUsers);
-    }else{
-      setLoading(false)
+    } else {
+      setLoading(false);
     }
   };
 
@@ -57,7 +57,7 @@ const Dashboard = () => {
         profilePhoto,
         onlineStatus,
         chatId: data.chatId,
-        participantId: id
+        participantId: id,
       });
     } else {
       if (response.status == 409) {
@@ -69,9 +69,9 @@ const Dashboard = () => {
   };
 
   return (
-    <div className=" h-full flex bg-[#efefef]">
+    <div className=" h-full flex bg-[#efefef] relative">
       <Toaster richColors position="top-right" />
-      <div className="bg-[#ffffff] lg:w-[30%] relative md:w-[50%] border-r-[1px] border-r-[#d3d2d2]">
+      <div className="bg-[#ffffff] lg:w-[30%] relative w-full md:w-[50%] border-r-[1px] border-r-[#d3d2d2]">
         <Chats chatCreated={chatCreated} />
         <div className="absolute right-10 bottom-10">
           <div>
@@ -87,7 +87,7 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-      <div className="flex-grow md:w-[50%] border-r-[1px] border-r-[#d3d2d2]">
+      <div className={`md:flex-grow ${chatWindowSize == "small" ? "absolute w-screen left-0 block bg-white" : 'hidden md:block'}   md:w-[50%] border-r-[1px] border-r-[#d3d2d2]`}>
         <ChatWindow />
       </div>
       {addPersonModal && (
@@ -118,7 +118,7 @@ const Dashboard = () => {
                         user.id,
                         user.username,
                         user.profilePhoto,
-                        user.onlineStatus,
+                        user.onlineStatus
                       );
                     }}
                     key={user.id}
@@ -155,8 +155,12 @@ const Dashboard = () => {
   );
 };
 
+const mapStateToProps = ({ chat }) => ({
+  chatWindowSize: chat.chatWindowSize,
+});
+
 const mapDispatchToProps = (dispatch) => ({
   setActiveChat: () => dispatch(setActiveChat()),
 });
 
-export default connect(null, mapDispatchToProps)(Dashboard);
+export default connect(mapStateToProps, mapDispatchToProps)(Dashboard);
