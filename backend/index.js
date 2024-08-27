@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 5555;
 const app = express();
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:5174"],
+    origin: ["http://localhost:5173", "http://localhost:5174", "https://vibe-chat-react.vercel.app"],
   })
 );
 app.options("*", cors());
