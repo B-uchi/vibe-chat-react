@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../lib/hooks/useAuth";
 import { toast } from "sonner";
 import { IoSend } from "react-icons/io5";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "../lib/firebaseConfig";
 import { FaArrowDown } from "react-icons/fa6";
 
@@ -58,27 +58,33 @@ const ChatWindow = ({
     fetchMessages();
   }, [activeChat]);
 
-  // useEffect(() => {
-  //   if (activeChat) {
-  //     const unsubscribe = onSnapshot(
-  //       collection(db, "chats", activeChat.chatId, "messages"),
-  //       (querySnapshot) => {
-  //         console.log("snapshot", querySnapshot.docs[0]);
-  //         const newDocument = querySnapshot
-  //           .docChanges()
-  //           .find((change) => change.type === "added");
-
-  //         if (newDocument) {
-  //           console.log(newDocument.doc.data());
-  //         }
-  //       }
-  //     );
-  //     return () => {
-  //       unsubscribe();
-  //     };
-  //   }
-  // }, [messages]);
-
+  let firstListen = true;
+  useEffect(() => {
+    if (activeChat) {
+      const unsubscribe = onSnapshot(
+        query(
+          collection(db, "chats", activeChat.chatId, "messages"),
+          orderBy("timeStamp", "desc")
+        ),
+        (doc) => {
+          if (firstListen) {
+            firstListen = false;
+          } else {
+            const newMessage = doc
+              .docChanges()
+              .find((change) => change.type === "added");
+            setMessages([
+              ...messages,
+              { id: newMessage.doc.id, ...newMessage.doc.data() },
+            ]);
+          }
+        }
+      );
+      return () => {
+        unsubscribe();
+      };
+    }
+  }, [messages]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -114,9 +120,15 @@ const ChatWindow = ({
   };
 
   function convertTimestampToTime(timestamp) {
-    const date = new Date(
-      timestamp._seconds * 1000 + timestamp._nanoseconds / 1000000
-    );
+    let seconds, nanoseconds;
+    if (timestamp.seconds && timestamp.nanoseconds) {
+      seconds = timestamp.seconds;
+      nanoseconds = timestamp.namoseconds;
+    }
+    seconds = timestamp.seconds || timestamp._seconds;
+    nanoseconds = timestamp.nanoseconds || timestamp._nanoseconds;
+
+    const date = new Date(seconds * 1000 + nanoseconds / 1000000);
 
     if (date.getHours() < 12) {
       return date.toLocaleTimeString("en-US", {
@@ -140,7 +152,7 @@ const ChatWindow = ({
           Click on a chat to catch a vibe
         </p>
       ) : (
-        <div className="flex flex-col relative h-full">
+        <div className="flex flex-col relative h-screen overflow-hidden">
           <div className="bg-white p-1 h-[8vh] shrink-0 border-b-[#e1e1e1] border-b-[1px] flex items-center font-poppins">
             <button
               onClick={() => {
@@ -175,9 +187,9 @@ const ChatWindow = ({
                         return (
                           <div
                             key={message.id}
-                            className="self-end max-w-[70%] relative w-fit"
+                            className="self-end max-w-[70%] relative w-fit "
                           >
-                            <div className="shadow-sm bg-white border-[1px] border-[#bdbdbd] rounded-full p-3">
+                            <div className="shadow-sm bg-white break-words border-[1px] border-[#bdbdbd] rounded-full p-4">
                               {message.message}
                             </div>
                             <small className="absolute right-3 w-[80px] text-right">
@@ -191,7 +203,7 @@ const ChatWindow = ({
                             key={message.id}
                             className="self-start max-w-[70%] relative"
                           >
-                            <div className="shadow-sm bg-[#313131] text-white border-[1px] border-[#bdbdbd] rounded-full p-3">
+                            <div className="shadow-sm bg-[#313131] text-white border-[1px] border-[#bdbdbd] rounded-full p-4 break-words">
                               {message.message}
                             </div>
                             <small className="absolute left-3 w-[80px] text-left">
@@ -210,9 +222,9 @@ const ChatWindow = ({
                 )}
                 <form
                   onSubmit={(e) => sendMessage(e)}
-                  className=" w-full h-[15vh] flex justify-center items-center relative"
+                  className=" w-full h-[15vh] flex justify-center items-center relative gap-3 md:gap-0"
                 >
-                  <div className="rounded-full lg:w-[80%] mx-auto border-[1px] border-[#bdbdbd] flex items-center">
+                  <div className="rounded-full w-full md:w-[80%] lg:w-[80%] mx-auto border-[1px] border-[#bdbdbd] flex items-center">
                     <input
                       type="text"
                       value={messageBody}
@@ -231,7 +243,7 @@ const ChatWindow = ({
                   <button
                     type="button"
                     onClick={scrollToBottom}
-                    className="absolute right-1 lg:right-5 p-3 rounded-full bg-[#313131]"
+                    className="md:absolute right-1 lg:right-5 p-3 rounded-full bg-[#313131]"
                   >
                     <FaArrowDown color="white" />
                   </button>
