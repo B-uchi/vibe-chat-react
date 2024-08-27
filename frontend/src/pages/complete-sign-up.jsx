@@ -98,7 +98,7 @@ const CompleteSignup = () => {
       setLoading(true);
       try {
         const response = await fetch(
-          "http://localhost:5000/api/user/completeSignup",
+          "https://vibe-chat-react.onrender.com/api/user/completeSignup",
           {
             method: "POST",
             body: JSON.stringify({ username, photoId: imageStorageUrl }),
