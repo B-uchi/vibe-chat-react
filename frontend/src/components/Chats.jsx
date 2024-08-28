@@ -2,7 +2,6 @@ import { IoSearch } from "react-icons/io5";
 import Conversation from "./Conversation";
 import { connect, useSelector } from "react-redux";
 import {
-  clearActiveChat,
   clearMessages,
   setActiveChat,
   setChatWindowSize,
@@ -13,6 +12,7 @@ import { useAuth } from "../lib/hooks/useAuth";
 import { toast } from "sonner";
 import { db } from "../lib/firebaseConfig";
 import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
 
 const Chats = ({
   setActiveChat,
@@ -21,10 +21,10 @@ const Chats = ({
   chatCreated,
   clearMessages,
   activeChat,
-  setChatWindowSize,
 }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const navigate = useNavigate();
   const user = useAuth().user;
 
   useEffect(() => {
@@ -32,7 +32,7 @@ const Chats = ({
       try {
         const idToken = await user.getIdToken(true);
         const response = await fetch(
-          "https://vibe-chat-react.onrender.com/api/user/getChats",
+          "http://localhost:5000/api/user/getChats",
           {
             method: "GET",
             headers: {
@@ -98,26 +98,16 @@ const Chats = ({
   const openChatWindow = (chatDetails) => {
     if (activeChat) {
       if (activeChat.chatId != chatDetails.chatId) {
-        if (screen.width < 769) {
-          clearActiveChat();
-          setChatWindowSize("small");
-        } else {
-          setChatWindowSize("large");
-        }
         clearMessages();
         setActiveChat(chatDetails);
-      } else if (activeChat.chatId == chatDetails.chatId && screen.width < 769) {
-        setChatWindowSize("small");
-        clearActiveChat();
-      }
+      } 
     } else {
-      if (screen.width < 769) {
-        setChatWindowSize("small");
-        clearActiveChat();
+      if (window.innerWidth < 769) {
+        setActiveChat(chatDetails);
+        navigate(`/chat/${chatDetails.chatId}`);
       } else {
-        setChatWindowSize("large");
+        setActiveChat(chatDetails);
       }
-      setActiveChat(chatDetails);
     }
   };
 
