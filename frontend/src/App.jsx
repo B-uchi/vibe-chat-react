@@ -19,6 +19,7 @@ import Navbar from "./components/Navbar";
 import Settings from "./pages/Settings";
 import { connect, useDispatch, useSelector } from "react-redux";
 import { setCurrentUser } from "./redux/userReducer/userAction";
+import MobileChatWindow from "./pages/MobileChatWindow";
 
 const AuthChecker = ({ children }) => {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ const AuthChecker = ({ children }) => {
           setLoading(false);
           try {
             const response = await fetch(
-              "https://vibe-chat-react.onrender.com/api/user/getUser",
+              "http://localhost:5000/api/user/getUser",
               {
                 method: "GET",
                 headers: {
@@ -90,11 +91,12 @@ const AuthChecker = ({ children }) => {
 function App() {
   const location = useLocation();
   const hideNavbarRoutes = ["/sign-in", "/complete-sign-up"];
+  const hideNavbar = hideNavbarRoutes.includes(location.pathname) || /^\/chat\/[^/]+$/.test(location.pathname);
 
   return (
     <AuthChecker>
       <div className="flex flex-col h-screen w-screen">
-        {!hideNavbarRoutes.includes(location.pathname) && (
+        {!hideNavbar && (
           <div className="sticky top-0 z-30">
             <Navbar />
           </div>
@@ -105,6 +107,9 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/complete-sign-up" element={<CompleteSignup />} />
             <Route path="/settings" element={<Settings />} />
+            {window.innerWidth < 769 && (
+              <Route path="/chat/:chatId" element={<MobileChatWindow />} />
+            )}
           </Routes>
         </div>
       </div>
