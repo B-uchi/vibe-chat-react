@@ -155,12 +155,9 @@ const Dashboard = () => {
   );
 };
 
-const mapStateToProps = ({ chat }) => ({
-  chatWindowSize: chat.chatWindowSize,
-});
 
 const mapDispatchToProps = (dispatch) => ({
   setActiveChat: () => dispatch(setActiveChat()),
 });
 
-export default connect(mapStateToProps, mapDispatchToProps)(Dashboard);
+export default connect(null, mapDispatchToProps)(Dashboard);

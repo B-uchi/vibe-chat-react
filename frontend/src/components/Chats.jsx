@@ -1,10 +1,9 @@
 import { IoSearch } from "react-icons/io5";
 import Conversation from "./Conversation";
-import { connect, useSelector } from "react-redux";
+import { connect } from "react-redux";
 import {
   clearMessages,
   setActiveChat,
-  setChatWindowSize,
   setUserChats,
 } from "../redux/chatReducer/chatAction";
 import { useEffect, useState } from "react";
@@ -169,7 +168,6 @@ const mapDispatchToProps = (dispatch) => ({
   setActiveChat: (chat) => dispatch(setActiveChat(chat)),
   setUserChats: (chatList) => dispatch(setUserChats(chatList)),
   clearMessages: () => dispatch(clearMessages()),
-  setChatWindowSize: (size) => dispatch(setChatWindowSize(size)),
 });
 const mapStateToProps = (state) => ({
   userChats: state.chat.userChats,
