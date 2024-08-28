@@ -24,6 +24,7 @@ const ChatWindow = ({
   const [messageBody, setMessageBody] = useState("");
   const user = useAuth().user;
   const messagesEndRef = useRef(null);
+  let groupedMessages;
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -31,7 +32,7 @@ const ChatWindow = ({
       if (activeChat) {
         const idToken = await user.getIdToken(true);
         const response = await fetch(
-          "https://vibe-chat-react.onrender.com/api/chat/fetchMessages",
+          "http://localhost:5000/api/chat/fetchMessages",
           {
             method: "POST",
             body: JSON.stringify({ chatId: activeChat.chatId }),
@@ -101,7 +102,7 @@ const ChatWindow = ({
   const sendMessage = async (e) => {
     e.preventDefault();
     const idToken = await user.getIdToken(true);
-    const response = await fetch("https://vibe-chat-react.onrender.com/api/chat/sendMessage", {
+    const response = await fetch("http://localhost:5000/api/chat/sendMessage", {
       method: "POST",
       body: JSON.stringify({
         messageBody,
@@ -123,7 +124,7 @@ const ChatWindow = ({
     let seconds, nanoseconds;
     if (timestamp.seconds && timestamp.nanoseconds) {
       seconds = timestamp.seconds;
-      nanoseconds = timestamp.namoseconds;
+      nanoseconds = timestamp.nanoseconds;
     }
     seconds = timestamp.seconds || timestamp._seconds;
     nanoseconds = timestamp.nanoseconds || timestamp._nanoseconds;
@@ -143,6 +144,31 @@ const ChatWindow = ({
         minute: "numeric",
       });
     }
+  }
+
+  if (messages) {
+    groupedMessages = messages.reduce((acc, message) => {
+      let seconds;
+      if (message.timeStamp.seconds) {
+        seconds = message.timeStamp.seconds;
+      } else {
+        seconds = message.timeStamp._seconds;
+      }
+
+      const messageDate = new Date(seconds * 1000).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+
+      if (!acc[messageDate]) {
+        acc[messageDate] = [];
+      }
+
+      acc[messageDate].push(message);
+
+      return acc;
+    }, {});
   }
 
   return (
@@ -181,38 +207,43 @@ const ChatWindow = ({
             ) : (
               <>
                 {messages && messages.length > 0 ? (
-                  <div className="overflow-y-auto h-[77vh] flex flex-col gap-5 px-3">
-                    {messages.map((message) => {
-                      if (message.senderId != activeChat.participantId) {
-                        return (
+                  <div className="overflow-y-auto h-[77vh] px-3">
+                    {Object.keys(groupedMessages).map((date, index) => (
+                      <div key={index} className="flex flex-col gap-5">
+                        <p className="text-center font-bold text-gray-500 my-4">
+                          {date}
+                        </p>
+                        {groupedMessages[date].map((message) => (
                           <div
                             key={message.id}
-                            className="self-end max-w-[70%] relative w-fit "
+                            className={
+                              message.senderId !== activeChat.participantId
+                                ? "self-end max-w-[70%] relative w-fit"
+                                : "self-start max-w-[70%] relative w-fit"
+                            }
                           >
-                            <div className="shadow-sm bg-white break-words border-[1px] border-[#bdbdbd] rounded-full p-4">
+                            <div
+                              className={`shadow-sm ${
+                                message.senderId !== activeChat.participantId
+                                  ? "bg-white"
+                                  : "bg-[#313131] text-white"
+                              } break-words border-[1px] border-[#bdbdbd] rounded-full p-4`}
+                            >
                               {message.message}
                             </div>
-                            <small className="absolute right-3 w-[80px] text-right">
+                            <small
+                              className={`absolute w-[80px] ${
+                                message.senderId !== activeChat.participantId
+                                  ? "right-3 text-right"
+                                  : "left-3 text-left"
+                              }`}
+                            >
                               {convertTimestampToTime(message.timeStamp)}
                             </small>
                           </div>
-                        );
-                      } else {
-                        return (
-                          <div
-                            key={message.id}
-                            className="self-start max-w-[70%] relative"
-                          >
-                            <div className="shadow-sm bg-[#313131] text-white border-[1px] border-[#bdbdbd] rounded-full p-4 break-words">
-                              {message.message}
-                            </div>
-                            <small className="absolute left-3 w-[80px] text-left">
-                              {convertTimestampToTime(message.timeStamp)}
-                            </small>
-                          </div>
-                        );
-                      }
-                    })}
+                        ))}
+                      </div>
+                    ))}
                     <div ref={messagesEndRef} />
                   </div>
                 ) : (
@@ -243,7 +274,7 @@ const ChatWindow = ({
                   <button
                     type="button"
                     onClick={scrollToBottom}
-                    className="md:absolute right-1 lg:right-5 p-3 rounded-full bg-[#313131]"
+                    className="lg:absolute right-1 lg:right-5 p-3 rounded-full bg-[#313131]"
                   >
                     <FaArrowDown color="white" />
                   </button>
