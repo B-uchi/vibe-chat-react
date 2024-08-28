@@ -36,7 +36,7 @@ const AuthChecker = ({ children }) => {
           setLoading(false);
           try {
             const response = await fetch(
-              "http://localhost:5000/api/user/getUser",
+              "https://vibe-chat-react.onrender.com/api/user/getUser",
               {
                 method: "GET",
                 headers: {

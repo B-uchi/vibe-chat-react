@@ -32,7 +32,7 @@ const ChatWindow = ({
       if (activeChat) {
         const idToken = await user.getIdToken(true);
         const response = await fetch(
-          "http://localhost:5000/api/chat/fetchMessages",
+          "https://vibe-chat-react.onrender.com/api/chat/fetchMessages",
           {
             method: "POST",
             body: JSON.stringify({ chatId: activeChat.chatId }),
@@ -102,7 +102,7 @@ const ChatWindow = ({
   const sendMessage = async (e) => {
     e.preventDefault();
     const idToken = await user.getIdToken(true);
-    const response = await fetch("http://localhost:5000/api/chat/sendMessage", {
+    const response = await fetch("https://vibe-chat-react.onrender.com/api/chat/sendMessage", {
       method: "POST",
       body: JSON.stringify({
         messageBody,
