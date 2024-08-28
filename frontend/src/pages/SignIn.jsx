@@ -33,7 +33,11 @@ const SignIn = () => {
 
     try {
       toast.info("Signing in...");
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       const user = userCredential.user;
       const userDoc = await getDoc(doc(db, "users", user.uid));
 
@@ -63,7 +67,11 @@ const SignIn = () => {
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       const user = userCredential.user;
       await sendEmailVerification(user);
 
@@ -77,7 +85,9 @@ const SignIn = () => {
         createdAt: new Date().toISOString(),
       });
 
-      toast.info("Account created successfully. Check inbox for verification email");
+      toast.info(
+        "Account created successfully. Check inbox for verification email"
+      );
       setLoading(false);
       console.log("Navigating to '/complete-sign-up'");
       navigate("/complete-sign-up");
@@ -117,11 +127,12 @@ const SignIn = () => {
       setLoading(false);
     }
   };
+
   return (
     <main className="w-full h-[100vh] flex relative">
       <Toaster position="top-right" richColors />
       {loading && <Spinner />}
-      <div className="h-full w-1/2 bg-[#313131] flex justify-center items-center">
+      <div className="h-full hidden lg:flex lg:w-1/2 bg-[#313131] justify-center items-center">
         <div className="text-center">
           <h1 className="font-rowdies text-6xl font-extrabold text-white">
             Vibe Chat
@@ -131,11 +142,14 @@ const SignIn = () => {
           </small>
         </div>
       </div>
-      <div className="w-1/2 p-5 justify-center items-center flex">
+      <div className="lg:w-1/2 w-full flex flex-col p-5 justify-center items-center ">
         {page === "signin" ? (
           <div className="border-[1px] rounded-md border-[#efefef] p-5 w-[500px] shadow-sm">
-            <h1 className="font-poppins font-bold text-3xl text-center mb-5">
+            <h1 className="font-poppins hidden lg:block font-bold text-3xl text-center mb-5">
               Sign In
+            </h1>
+            <h1 className="font-poppins lg:hidden font-bold text-3xl text-center mb-5">
+              Sign Into Vibe Chat
             </h1>
             <form className="" onSubmit={(e) => signIn(e)}>
               <div className="flex flex-col">
@@ -187,8 +201,11 @@ const SignIn = () => {
           </div>
         ) : (
           <div className="border-[1px] rounded-md border-[#efefef] p-5 w-[500px] shadow-sm">
-            <h1 className="font-poppins font-bold text-3xl text-center mb-5">
+            <h1 className="font-poppins hidden lg:block font-bold text-3xl text-center mb-5">
               Sign Up
+            </h1>
+            <h1 className="font-poppins lg:hidden font-bold text-3xl text-center mb-5">
+              Sign up for Vibe Chat
             </h1>
             <form className="" onSubmit={(e) => signUp(e)}>
               <div className="flex">
