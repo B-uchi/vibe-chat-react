@@ -2,6 +2,7 @@ import { IoSearch } from "react-icons/io5";
 import Conversation from "./Conversation";
 import { connect } from "react-redux";
 import {
+  clearActiveChat,
   clearMessages,
   setActiveChat,
   setUserChats,
@@ -15,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 
 const Chats = ({
   setActiveChat,
+  clearActiveChat,
   setUserChats,
   userChats,
   chatCreated,
@@ -99,7 +101,14 @@ const Chats = ({
       if (activeChat.chatId != chatDetails.chatId) {
         clearMessages();
         setActiveChat(chatDetails);
-      } 
+      } else if (
+        activeChat.chatId == chatDetails.chatId &&
+        window.innerWidth < 769
+      ) {
+        clearActiveChat()
+        setActiveChat(chatDetails);
+        navigate(`/chat/${chatDetails.chatId}`);
+      }
     } else {
       if (window.innerWidth < 769) {
         setActiveChat(chatDetails);
@@ -167,6 +176,7 @@ const Chats = ({
 const mapDispatchToProps = (dispatch) => ({
   setActiveChat: (chat) => dispatch(setActiveChat(chat)),
   setUserChats: (chatList) => dispatch(setUserChats(chatList)),
+  clearActiveChat: () => dispatch(clearActiveChat()),
   clearMessages: () => dispatch(clearMessages()),
 });
 const mapStateToProps = (state) => ({
