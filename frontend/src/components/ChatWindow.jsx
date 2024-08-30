@@ -7,7 +7,7 @@ import {
 import { IoMdArrowBack } from "react-icons/io";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../lib/hooks/useAuth";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 import { IoSend } from "react-icons/io5";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "../lib/firebaseConfig";
@@ -101,6 +101,9 @@ const ChatWindow = ({
 
   const sendMessage = async (e) => {
     e.preventDefault();
+    if (!messageBody) {
+      return toast.error("Message can't be empty");
+    }
     const idToken = await user.getIdToken(true);
     const response = await fetch("https://vibe-chat-react.onrender.com/api/chat/sendMessage", {
       method: "POST",
@@ -173,6 +176,7 @@ const ChatWindow = ({
 
   return (
     <section className="h-full flex flex-col relative">
+      <Toaster position="top-right" richColors/>
       {!activeChat ? (
         <p className="w-full text-center font-rowdies absolute right-[50%] bottom-[50%] translate-x-[50%]">
           Click on a chat to catch a vibe

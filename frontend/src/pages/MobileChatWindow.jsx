@@ -7,7 +7,7 @@ import {
 import { IoMdArrowBack } from "react-icons/io";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../lib/hooks/useAuth";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 import { IoSend } from "react-icons/io5";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "../lib/firebaseConfig";
@@ -101,18 +101,25 @@ const MobileChatWindow = ({
 
   const sendMessage = async (e) => {
     e.preventDefault();
+    if (!messageBody) {
+      console.log(true);
+      return toast.error("Message can't be empty");
+    }
     const idToken = await user.getIdToken(true);
-    const response = await fetch("https://vibe-chat-react.onrender.com/api/chat/sendMessage", {
-      method: "POST",
-      body: JSON.stringify({
-        messageBody,
-        chatId: activeChat.chatId,
-      }),
-      headers: {
-        "Content-type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-    });
+    const response = await fetch(
+      "https://vibe-chat-react.onrender.com/api/chat/sendMessage",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          messageBody,
+          chatId: activeChat.chatId,
+        }),
+        headers: {
+          "Content-type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+      }
+    );
     if (response.status == 201) {
       setMessageBody("");
     } else {
@@ -148,8 +155,9 @@ const MobileChatWindow = ({
 
   return (
     <section className="h-full flex flex-col relative">
+      <Toaster position="top-right" richColors />
       {!activeChat ? (
-        <Navigate to={"/"}/>
+        <Navigate to={"/"} />
       ) : (
         <div className="flex flex-col relative h-screen overflow-hidden">
           <div className="bg-white p-1 h-[8vh] shrink-0 border-b-[#e1e1e1] border-b-[1px] flex items-center font-poppins">
