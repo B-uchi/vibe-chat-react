@@ -21,7 +21,6 @@ const CompleteSignup = () => {
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(null);
   const [userId, setUserId] = useState(null);
-  const [imageStorageUrl, setImageStorageUrl] = useState(null);
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
 
@@ -30,7 +29,7 @@ const CompleteSignup = () => {
       if (user) {
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
-          
+
           if (userDoc.data().profileData.username) {
             setLoading(false);
             navigate("/");
@@ -39,7 +38,7 @@ const CompleteSignup = () => {
             setLoading(false);
           }
         } catch (error) {
-          console.log(error)
+          console.log(error);
           setLoadingError(true);
           setLoading(false);
           toast.error("An error occured, please refresh page");
@@ -71,7 +70,8 @@ const CompleteSignup = () => {
     }
   }
 
-  const completeSignup = async () => {
+  const completeSignup = async (e) => {
+    e.preventDefault()
     setUploading(true);
 
     const usernameRegex = /^[a-zA-Z0-9]{4,16}$/;
@@ -79,21 +79,28 @@ const CompleteSignup = () => {
     const idToken = await user.getIdToken(true);
 
     if (!username) {
+      setUploading(false)
       return toast.error("Username is required");
     }
 
     if (!usernameRegex.test(username) || username.includes(" ")) {
       toast.error("Invalid Username");
+      setUploading(false)
       return setError(true);
+    }
+
+    if (!profilePhoto) {
+      setUploading(false);
+      return toast.error("Please select a profile photo.");
     }
 
     const storageRef = ref(
       storage,
       `kyc/${userId}.${profilePhoto.type.split("/")[1]}`
     );
+
     await uploadBytes(storageRef, profilePhoto).then(async (snapshot) => {
-      const imgUrl = await getDownloadURL(storageRef)
-      setImageStorageUrl(imgUrl);
+      const imgUrl = await getDownloadURL(storageRef);
       setUploading(false);
       setLoading(true);
       try {
@@ -101,7 +108,7 @@ const CompleteSignup = () => {
           "https://vibe-chat-react.onrender.com/api/user/completeSignup",
           {
             method: "POST",
-            body: JSON.stringify({ username, photoId: imageStorageUrl }),
+            body: JSON.stringify({ username, photoId: imgUrl }),
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${idToken}`,
@@ -127,9 +134,14 @@ const CompleteSignup = () => {
         <Spinner />
       ) : loadingError ? (
         <div className="absolute font-poppins flex flex-col items-center">
-          <MdErrorOutline size={50} color="red"/>
+          <MdErrorOutline size={50} color="red" />
           <p>An error occured, please try again.</p>
-          <button className="bg-[#313131] p-2 text-white rounded-md mt-2" onClick={()=>window.location.reload()}>Reload</button>
+          <button
+            className="bg-[#313131] p-2 text-white rounded-md mt-2"
+            onClick={() => window.location.reload()}
+          >
+            Reload
+          </button>
         </div>
       ) : (
         <div className="bg-white p-5 rounded-md border-[1px] border-[#3333333a] shadow flex flex-col">
@@ -166,7 +178,7 @@ const CompleteSignup = () => {
               <CiCamera size={45} />
             </button>
           )}
-          <div className="">
+          <form className="" onSubmit={(e) => completeSignup(e)}>
             <div className="flex items-center mt-5 gap-2">
               <p>vibe.com/@</p>
               <input
@@ -195,14 +207,14 @@ const CompleteSignup = () => {
             )}
             <button
               type="submit"
-              onClick={() => {
-                completeSignup();
+              onClick={(e) => {
+                completeSignup(e);
               }}
               className="hover:bg-[#3333339f] bg-[#333333] text-white rounded-md font-rowdies w-full p-2 mt-5 flex items-center justify-center gap-3"
             >
               Continue {uploading && <div className="loader"></div>}
             </button>
-          </div>
+          </form>
         </div>
       )}
     </div>
