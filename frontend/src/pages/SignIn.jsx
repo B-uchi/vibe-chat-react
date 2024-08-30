@@ -144,7 +144,7 @@ const SignIn = () => {
       </div>
       <div className="lg:w-1/2 w-full flex flex-col p-5 justify-center items-center ">
         {page === "signin" ? (
-          <div className="border-[1px] rounded-md border-[#efefef] p-5 w-[500px] shadow-sm">
+          <div className="border-[1px] rounded-md border-[#efefef] p-5 lg:w-[500px] w-[95%] shadow-sm">
             <h1 className="font-poppins hidden lg:block font-bold text-3xl text-center mb-5">
               Sign In
             </h1>
@@ -200,7 +200,7 @@ const SignIn = () => {
             </div>
           </div>
         ) : (
-          <div className="border-[1px] rounded-md border-[#efefef] p-5 w-[500px] shadow-sm">
+          <div className="border-[1px] rounded-md border-[#efefef] p-5 lg:w-[500px] w-[95%] shadow-sm">
             <h1 className="font-poppins hidden lg:block font-bold text-3xl text-center mb-5">
               Sign Up
             </h1>
