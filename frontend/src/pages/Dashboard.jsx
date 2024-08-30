@@ -59,6 +59,7 @@ const Dashboard = () => {
         chatId: data.chatId,
         participantId: id,
       });
+      setAddPersonModal(false);
     } else {
       if (response.status == 409) {
         return toast("chat already exists");
@@ -122,7 +123,7 @@ const Dashboard = () => {
                       );
                     }}
                     key={user.id}
-                    className="hover:bg-[#efefef] rounded-md p-2 cursor-pointer"
+                    className="hover:bg-[#e1e1e1] bg-[#efefef] mb-2 rounded-md p-2 cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
                       <img
@@ -131,13 +132,10 @@ const Dashboard = () => {
                         className="w-[50px] h-[50px] rounded-full"
                       />
                       <div className="">
-                        <p className="font-poppins font-bold">
-                          Username:{" "}
-                          <span className="font-normal">{user.username}</span>
+                        <p className="font-poppins">{user.username}</p>
+                        <p className="font-poppins text-sm line-clamp-1 font-bold">
+                          Bio: <span className="font-normal">{user.bio}</span>
                         </p>
-                        <small className="font-poppins line-clamp-1">
-                          Bio: {user.bio}
-                        </small>
                       </div>{" "}
                     </div>
                   </div>
@@ -154,7 +152,6 @@ const Dashboard = () => {
     </div>
   );
 };
-
 
 const mapDispatchToProps = (dispatch) => ({
   setActiveChat: () => dispatch(setActiveChat()),
