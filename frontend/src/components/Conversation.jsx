@@ -14,8 +14,8 @@ const Conversation = ({ data, onClick }) => {
   function convertTimestampToTime(timestamp) {
     let seconds, nanoseconds;
     if (timestamp.seconds && timestamp.nanoseconds) {
-      seconds = timestamp.seconds
-      nanoseconds = timestamp.namoseconds
+      seconds = timestamp.seconds;
+      nanoseconds = timestamp.nanoseconds;
     }
     seconds = timestamp.seconds || timestamp._seconds;
     nanoseconds = timestamp.nanoseconds || timestamp._nanoseconds;
@@ -61,14 +61,16 @@ const Conversation = ({ data, onClick }) => {
         <div className="w-full">
           <h3 className="font-bold">{username}</h3>
           {lastMessage ? (
-            <p className="text-sm line-clamp-1 max-w-[90%] break-words">{lastMessage}</p>
+            <p className="text-sm line-clamp-1 max-w-[90%] break-words">
+              {lastMessage}
+            </p>
           ) : (
             <p className="text-sm italics">You havent sent a message yet</p>
           )}
         </div>
       </div>
       <div className="flex flex-col items-end mr-2 w-[20%] lg:w-[15%]">
-        <small>{convertTimestampToTime(timestamp)}</small>
+        {timestamp && <small>{convertTimestampToTime(timestamp)}</small>}
         <div className="bg-[#313131] text-white text-[10px] font-bold p-1 px-2.5 rounded-full">
           1
         </div>

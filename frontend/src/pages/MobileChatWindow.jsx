@@ -124,7 +124,7 @@ const MobileChatWindow = ({
     let seconds, nanoseconds;
     if (timestamp.seconds && timestamp.nanoseconds) {
       seconds = timestamp.seconds;
-      nanoseconds = timestamp.namoseconds;
+      nanoseconds = timestamp.nanoseconds;
     }
     seconds = timestamp.seconds || timestamp._seconds;
     nanoseconds = timestamp.nanoseconds || timestamp._nanoseconds;
