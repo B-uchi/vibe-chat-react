@@ -5,6 +5,7 @@ import {
   setMessages,
 } from "../redux/chatReducer/chatAction";
 import { IoMdArrowBack } from "react-icons/io";
+import { IoEllipsisVertical } from "react-icons/io5";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../lib/hooks/useAuth";
 import { toast, Toaster } from "sonner";
@@ -12,6 +13,7 @@ import { IoSend } from "react-icons/io5";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "../lib/firebaseConfig";
 import { FaArrowDown } from "react-icons/fa6";
+import { MdCall } from "react-icons/md";
 
 const ChatWindow = ({
   activeChat,
@@ -32,7 +34,7 @@ const ChatWindow = ({
       if (activeChat) {
         const idToken = await user.getIdToken(true);
         const response = await fetch(
-          "https://vibe-chat-react.onrender.com/api/chat/fetchMessages",
+          "http://localhost:5000/api/chat/fetchMessages",
           {
             method: "POST",
             body: JSON.stringify({ chatId: activeChat.chatId }),
@@ -105,17 +107,20 @@ const ChatWindow = ({
       return toast.error("Message can't be empty");
     }
     const idToken = await user.getIdToken(true);
-    const response = await fetch("https://vibe-chat-react.onrender.com/api/chat/sendMessage", {
-      method: "POST",
-      body: JSON.stringify({
-        messageBody,
-        chatId: activeChat.chatId,
-      }),
-      headers: {
-        "Content-type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-    });
+    const response = await fetch(
+      "http://localhost:5000/api/chat/sendMessage",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          messageBody,
+          chatId: activeChat.chatId,
+        }),
+        headers: {
+          "Content-type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+      }
+    );
     if (response.status == 201) {
       setMessageBody("");
     } else {
@@ -176,33 +181,47 @@ const ChatWindow = ({
 
   return (
     <section className="h-full flex flex-col relative">
-      <Toaster position="top-right" richColors/>
+      <Toaster position="top-right" richColors />
       {!activeChat ? (
         <p className="w-full text-center font-rowdies absolute right-[50%] bottom-[50%] translate-x-[50%]">
           Click on a chat to catch a vibe
         </p>
       ) : (
         <div className="flex flex-col relative h-screen overflow-hidden">
-          <div className="bg-white p-1 h-[8vh] shrink-0 border-b-[#e1e1e1] border-b-[1px] flex items-center font-poppins">
-            <button
-              onClick={() => {
-                clearActiveChat();
-                clearMessages();
-              }}
-              className="mr-2"
-            >
-              <IoMdArrowBack size={25} />
-            </button>
-            <div className="flex gap-2 ">
-              <img
-                src={activeChat.profilePhoto}
-                alt=""
-                className="rounded-full h-[40px] w-[40px]"
-              />
-              <div className="flex flex-col justify-center">
-                <p className="font-bold">{activeChat && activeChat.username}</p>
-                <small>{activeChat.onlineStatus ? "Online" : "Offline"}</small>
+          <div className="bg-white p-1 h-[8vh] shrink-0 border-b-[#e1e1e1] border-b-[1px] flex justify-between items-center font-poppins">
+            <div className="flex">
+              <button
+                onClick={() => {
+                  clearActiveChat();
+                  clearMessages();
+                }}
+                className="mr-2"
+              >
+                <IoMdArrowBack size={25} />
+              </button>
+              <div className="flex gap-2 ">
+                <img
+                  src={activeChat.profilePhoto}
+                  alt=""
+                  className="rounded-full h-[40px] w-[40px]"
+                />
+                <div className="flex flex-col justify-center">
+                  <p className="font-bold">
+                    {activeChat && activeChat.username}
+                  </p>
+                  <small>
+                    {activeChat.onlineStatus ? "Online" : "Offline"}
+                  </small>
+                </div>
               </div>
+            </div>
+            <div className="flex items-center gap-7 mr-5">
+              <button className="hover:bg-[#efefef] p-2 rounded-full" title="Call">
+                <MdCall color="#313131" size={23}/>
+              </button>
+              <button className="hover:bg-[#efefef] p-2 rounded-full" title="More options">
+                <IoEllipsisVertical color="#313131" size={23}/>
+              </button>
             </div>
           </div>
           <div className="h-[92vh] max-h-[92vh] p-2 relative flex flex-col overflow-hidden">

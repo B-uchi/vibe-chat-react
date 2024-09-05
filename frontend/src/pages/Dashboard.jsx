@@ -20,7 +20,7 @@ const Dashboard = () => {
   const fetchOtherUsers = async () => {
     const idToken = await user.getIdToken(true);
     const response = await fetch(
-      "https://vibe-chat-react.onrender.com/api/user/getOtherUsers",
+      "http://localhost:5000/api/user/getOtherUsers",
       {
         method: "GET",
         headers: {
@@ -40,7 +40,7 @@ const Dashboard = () => {
 
   const createChat = async (id, username, profilePhoto, onlineStatus) => {
     const idToken = await user.getIdToken(true);
-    const response = await fetch("https://vibe-chat-react.onrender.com/api/chat/createChat", {
+    const response = await fetch("http://localhost:5000/api/chat/createChat", {
       method: "POST",
       body: JSON.stringify({ otherUserId: id }),
       headers: {
