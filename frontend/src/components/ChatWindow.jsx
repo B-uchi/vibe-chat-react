@@ -276,7 +276,7 @@ const ChatWindow = ({
                 )}
                 <form
                   onSubmit={(e) => sendMessage(e)}
-                  className=" w-full h-[15vh] flex justify-center items-center relative gap-3 md:gap-0"
+                  className=" w-full h-[9vh] flex justify-center items-center relative gap-3 md:gap-0"
                 >
                   <div className="rounded-full w-full md:w-[80%] lg:w-[80%] mx-auto border-[1px] border-[#bdbdbd] flex items-center">
                     <input
