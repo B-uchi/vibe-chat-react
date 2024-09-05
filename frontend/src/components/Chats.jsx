@@ -7,12 +7,13 @@ import {
   setActiveChat,
   setUserChats,
 } from "../redux/chatReducer/chatAction";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../lib/hooks/useAuth";
 import { toast } from "sonner";
 import { db } from "../lib/firebaseConfig";
 import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import FriendRequests from "./FriendRequests";
 
 const Chats = ({
   setActiveChat,
@@ -25,7 +26,9 @@ const Chats = ({
 }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [activeTab, setActiveTab] = useState("friends")
   const navigate = useNavigate();
+  const [tab, setTab] = useState("chats");
   const user = useAuth().user;
 
   useEffect(() => {
@@ -33,7 +36,7 @@ const Chats = ({
       try {
         const idToken = await user.getIdToken(true);
         const response = await fetch(
-          "https://vibe-chat-react.onrender.com/api/user/getChats",
+          "http://localhost:5000/api/user/getChats",
           {
             method: "GET",
             headers: {
@@ -105,7 +108,7 @@ const Chats = ({
         activeChat.chatId == chatDetails.chatId &&
         window.innerWidth < 769
       ) {
-        clearActiveChat()
+        clearActiveChat();
         setActiveChat(chatDetails);
         navigate(`/chat/${chatDetails.chatId}`);
       }
@@ -119,9 +122,16 @@ const Chats = ({
     }
   };
 
+  const handleTabClick = (tab) => {
+    setTab(tab)
+    setActiveTab(tab)
+  }
+
+  console.log(activeTab)
+
   return (
     <section className="p-3 font-poppins h-full flex flex-col">
-      <div className="h-[130px]">
+      <div className="h-[90px]">
         <div className="w-full p-1 bg-[#efefef] rounded-md flex items-center">
           <IoSearch size={25} className="mr-2" />
           <input
@@ -131,44 +141,56 @@ const Chats = ({
           />
         </div>
         <div className="flex w-full justify-between mt-3 border-b-[1px]">
-          <button className="text-center w-1/2 p-2 border-r-[1px] bg-[#efefef] rounded-tl-md">
+          <button
+            onClick={() => handleTabClick("chats")}
+            className={`text-center w-1/2 p-2 border-r-[1px] rounded-tl-md ${activeTab == "chats" ? " bg-[#efefef] " : " hover:bg-[#efefef]"}`}
+          >
             Friends
           </button>
-          <button className="text-center w-1/2 p-2 font-bold hover:bg-[#efefef]">
+          <button
+            onClick={() => handleTabClick("requests")}
+            className={`text-center w-1/2 p-2 font-bold rounded-tr-md ${activeTab == "requests" ? " bg-[#efefef] " : " hover:bg-[#efefef]"}`}
+          >
             Requests (2)
           </button>
         </div>
-        <div className="flex items-center justify-between mt-3">
-          <h2 className="font-bold text-2xl">Chats</h2>
-        </div>
       </div>
-      <div className="mt-2 overflow-auto flex-grow">
-        {loading ? (
-          <div className="loader-black absolute right-[50%] bottom-[50%] translate-x-[50%]"></div>
-        ) : error ? (
-          <div className="absolute right-[50%] bottom-[50%] translate-x-[50%]">
-            An error occured
+      {tab == "chats" ? (
+        <div className="overflow-auto flex-grow">
+          <div className="flex items-center justify-between mt-3 mb-2">
+            <h2 className="font-bold text-2xl">Chats</h2>
           </div>
-        ) : userChats && userChats.length > 0 ? (
-          userChats.map((chat) => (
-            <Conversation
-              key={chat.chatId}
-              onClick={openChatWindow}
-              data={{
-                participantId: chat.participantsData.id,
-                chatId: chat.chatId,
-                onlineStatus: chat.participantsData.onlineStatus,
-                lastMessage: chat.lastMessage,
-                username: chat.participantsData.username,
-                timestamp: chat.lastMessageTimeStamp,
-                profilePhoto: chat.participantsData.profilePhoto,
-              }}
-            />
-          ))
-        ) : (
-          <p className="mt-2">No chats found...</p>
-        )}
-      </div>
+          {loading ? (
+            <div className="loader-black absolute right-[50%] bottom-[50%] translate-x-[50%]"></div>
+          ) : error ? (
+            <div className="absolute right-[50%] bottom-[50%] translate-x-[50%]">
+              An error occured
+            </div>
+          ) : userChats && userChats.length > 0 ? (
+            userChats.map((chat) => (
+              <Conversation
+                key={chat.chatId}
+                onClick={openChatWindow}
+                data={{
+                  participantId: chat.participantsData.id,
+                  chatId: chat.chatId,
+                  onlineStatus: chat.participantsData.onlineStatus,
+                  lastMessage: chat.lastMessage,
+                  username: chat.participantsData.username,
+                  timestamp: chat.lastMessageTimeStamp,
+                  profilePhoto: chat.participantsData.profilePhoto,
+                }}
+              />
+            ))
+          ) : (
+            <p className="mt-2">No chats found...</p>
+          )}
+        </div>
+      ) : (
+        <div className="overflow-auto flex-grow">
+          <FriendRequests />
+        </div>
+      )}
     </section>
   );
 };
