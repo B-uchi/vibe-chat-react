@@ -8,11 +8,12 @@ import { IoMdArrowBack } from "react-icons/io";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../lib/hooks/useAuth";
 import { toast, Toaster } from "sonner";
-import { IoSend } from "react-icons/io5";
+import { IoEllipsisVertical, IoSend } from "react-icons/io5";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "../lib/firebaseConfig";
 import { FaArrowDown } from "react-icons/fa6";
 import { Navigate } from "react-router-dom";
+import { MdCall } from "react-icons/md";
 
 const MobileChatWindow = ({
   activeChat,
@@ -21,44 +22,44 @@ const MobileChatWindow = ({
   setMessages,
   clearMessages,
 }) => {
-  const [fetchingMsgs, setFetchingMsgs] = useState(true);
+  const [fetchingMsgs, setFetchingMsgs] = useState(false);
   const [messageBody, setMessageBody] = useState("");
   const user = useAuth().user;
   const messagesEndRef = useRef(null);
   let groupedMessages;
 
-  useEffect(() => {
-    const fetchMessages = async () => {
-      setFetchingMsgs(true);
-      if (activeChat) {
-        const idToken = await user.getIdToken(true);
-        const response = await fetch(
-          "https://vibe-chat-react.onrender.com/api/chat/fetchMessages",
-          {
-            method: "POST",
-            body: JSON.stringify({ chatId: activeChat.chatId }),
-            headers: {
-              "Content-type": "application/json",
-              Authorization: `Bearer ${idToken}`,
-            },
-          }
-        );
-        if (response.status == 200) {
-          const data = await response.json();
-          setMessages(data.messages);
-          setFetchingMsgs(false);
-          scrollToBottom();
-        } else if (response.status == null) {
-          console.log(response.statusText);
-          setFetchingMsgs(false);
-          toast.error("Error fetching messages");
-          console.log("Error fetching messages");
-        }
-      }
-    };
+  // useEffect(() => {
+  //   const fetchMessages = async () => {
+  //     setFetchingMsgs(true);
+  //     if (activeChat) {
+  //       const idToken = await user.getIdToken(true);
+  //       const response = await fetch(
+  //         "http://localhost:5000/api/chat/fetchMessages",
+  //         {
+  //           method: "POST",
+  //           body: JSON.stringify({ chatId: activeChat.chatId }),
+  //           headers: {
+  //             "Content-type": "application/json",
+  //             Authorization: `Bearer ${idToken}`,
+  //           },
+  //         }
+  //       );
+  //       if (response.status == 200) {
+  //         const data = await response.json();
+  //         setMessages(data.messages);
+  //         setFetchingMsgs(false);
+  //         scrollToBottom();
+  //       } else if (response.status == null) {
+  //         console.log(response.statusText);
+  //         setFetchingMsgs(false);
+  //         toast.error("Error fetching messages");
+  //         console.log("Error fetching messages");
+  //       }
+  //     }
+  //   };
 
-    fetchMessages();
-  }, []);
+  //   fetchMessages();
+  // }, []);
 
   let firstListen = true;
   useEffect(() => {
@@ -108,7 +109,7 @@ const MobileChatWindow = ({
     }
     const idToken = await user.getIdToken(true);
     const response = await fetch(
-      "https://vibe-chat-react.onrender.com/api/chat/sendMessage",
+      "http://localhost:5000/api/chat/sendMessage",
       {
         method: "POST",
         body: JSON.stringify({
@@ -187,24 +188,46 @@ const MobileChatWindow = ({
       ) : (
         <div className="flex flex-col relative h-screen overflow-hidden">
           <div className="bg-white p-1 h-[8vh] shrink-0 border-b-[#e1e1e1] border-b-[1px] flex items-center font-poppins">
-            <button
-              onClick={() => {
-                clearActiveChat();
-                clearMessages();
-              }}
-              className="mr-2"
-            >
-              <IoMdArrowBack size={25} />
-            </button>
-            <div className="flex gap-2 ">
-              <img
-                src={activeChat.profilePhoto}
-                alt=""
-                className="rounded-full h-[40px] w-[40px]"
-              />
-              <div className="flex flex-col justify-center">
-                <p className="font-bold">{activeChat && activeChat.username}</p>
-                <small>{activeChat.onlineStatus ? "Online" : "Offline"}</small>
+            <div className="w-full p-1 h-[8vh] border-b-[#e1e1e1] border-b-[1px] flex justify-between items-center font-poppins">
+              <div className="flex">
+                <button
+                  onClick={() => {
+                    clearActiveChat();
+                    clearMessages();
+                  }}
+                  className="mr-2"
+                >
+                  <IoMdArrowBack size={25} />
+                </button>
+                <div className="flex gap-2 ">
+                  <img
+                    src={activeChat.profilePhoto}
+                    alt=""
+                    className="rounded-full h-[40px] w-[40px]"
+                  />
+                  <div className="flex flex-col justify-center">
+                    <p className="font-bold">
+                      {activeChat && activeChat.username}
+                    </p>
+                    <small>
+                      {activeChat.onlineStatus ? "Online" : "Offline"}
+                    </small>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-7 mr-5">
+                <button
+                  className="hover:bg-[#efefef] p-2 rounded-full"
+                  title="Call"
+                >
+                  <MdCall color="#313131" size={23} />
+                </button>
+                <button
+                  className="hover:bg-[#efefef] p-2 rounded-full"
+                  title="More options"
+                >
+                  <IoEllipsisVertical color="#313131" size={23} />
+                </button>
               </div>
             </div>
           </div>
@@ -214,7 +237,7 @@ const MobileChatWindow = ({
             ) : (
               <>
                 {messages && messages.length > 0 ? (
-                  <div className="overflow-y-auto h-[77vh] px-3">
+                  <div className="overflow-y-auto h-[83vh] px-3">
                     {Object.keys(groupedMessages).map((date, index) => (
                       <div key={index} className="flex flex-col gap-5">
                         <p className="text-center font-bold text-gray-500 my-4">
@@ -230,20 +253,18 @@ const MobileChatWindow = ({
                             }
                           >
                             <div
-                              className={`shadow-sm ${
-                                message.senderId !== activeChat.participantId
+                              className={`shadow-sm ${message.senderId !== activeChat.participantId
                                   ? "bg-white"
                                   : "bg-[#313131] text-white"
-                              } break-words border-[1px] border-[#bdbdbd] rounded-full p-4`}
+                                } break-words border-[1px] border-[#bdbdbd] rounded-full p-4`}
                             >
                               {message.message}
                             </div>
                             <small
-                              className={`absolute w-[80px] ${
-                                message.senderId !== activeChat.participantId
+                              className={`absolute w-[80px] ${message.senderId !== activeChat.participantId
                                   ? "right-3 text-right"
                                   : "left-3 text-left"
-                              }`}
+                                }`}
                             >
                               {convertTimestampToTime(message.timeStamp)}
                             </small>
@@ -260,7 +281,7 @@ const MobileChatWindow = ({
                 )}
                 <form
                   onSubmit={(e) => sendMessage(e)}
-                  className=" w-full h-[15vh] flex justify-center items-center relative gap-3 md:gap-0"
+                  className=" w-full bottom-0 absolute px-5 h-[9vh] flex justify-center items-center gap-3 md:gap-0"
                 >
                   <div className="rounded-full w-full md:w-[80%] lg:w-[80%] mx-auto border-[1px] border-[#bdbdbd] flex items-center">
                     <input
