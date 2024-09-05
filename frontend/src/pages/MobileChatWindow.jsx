@@ -22,44 +22,44 @@ const MobileChatWindow = ({
   setMessages,
   clearMessages,
 }) => {
-  const [fetchingMsgs, setFetchingMsgs] = useState(false);
+  const [fetchingMsgs, setFetchingMsgs] = useState(true);
   const [messageBody, setMessageBody] = useState("");
   const user = useAuth().user;
   const messagesEndRef = useRef(null);
   let groupedMessages;
 
-  // useEffect(() => {
-  //   const fetchMessages = async () => {
-  //     setFetchingMsgs(true);
-  //     if (activeChat) {
-  //       const idToken = await user.getIdToken(true);
-  //       const response = await fetch(
-  //         "http://localhost:5000/api/chat/fetchMessages",
-  //         {
-  //           method: "POST",
-  //           body: JSON.stringify({ chatId: activeChat.chatId }),
-  //           headers: {
-  //             "Content-type": "application/json",
-  //             Authorization: `Bearer ${idToken}`,
-  //           },
-  //         }
-  //       );
-  //       if (response.status == 200) {
-  //         const data = await response.json();
-  //         setMessages(data.messages);
-  //         setFetchingMsgs(false);
-  //         scrollToBottom();
-  //       } else if (response.status == null) {
-  //         console.log(response.statusText);
-  //         setFetchingMsgs(false);
-  //         toast.error("Error fetching messages");
-  //         console.log("Error fetching messages");
-  //       }
-  //     }
-  //   };
+  useEffect(() => {
+    const fetchMessages = async () => {
+      setFetchingMsgs(true);
+      if (activeChat) {
+        const idToken = await user.getIdToken(true);
+        const response = await fetch(
+          "http://localhost:5000/api/chat/fetchMessages",
+          {
+            method: "POST",
+            body: JSON.stringify({ chatId: activeChat.chatId }),
+            headers: {
+              "Content-type": "application/json",
+              Authorization: `Bearer ${idToken}`,
+            },
+          }
+        );
+        if (response.status == 200) {
+          const data = await response.json();
+          setMessages(data.messages);
+          setFetchingMsgs(false);
+          scrollToBottom();
+        } else if (response.status == null) {
+          console.log(response.statusText);
+          setFetchingMsgs(false);
+          toast.error("Error fetching messages");
+          console.log("Error fetching messages");
+        }
+      }
+    };
 
-  //   fetchMessages();
-  // }, []);
+    fetchMessages();
+  }, []);
 
   let firstListen = true;
   useEffect(() => {
@@ -254,16 +254,16 @@ const MobileChatWindow = ({
                           >
                             <div
                               className={`shadow-sm ${message.senderId !== activeChat.participantId
-                                  ? "bg-white"
-                                  : "bg-[#313131] text-white"
+                                ? "bg-white"
+                                : "bg-[#313131] text-white"
                                 } break-words border-[1px] border-[#bdbdbd] rounded-full p-4`}
                             >
                               {message.message}
                             </div>
                             <small
                               className={`absolute w-[80px] ${message.senderId !== activeChat.participantId
-                                  ? "right-3 text-right"
-                                  : "left-3 text-left"
+                                ? "right-3 text-right"
+                                : "left-3 text-left"
                                 }`}
                             >
                               {convertTimestampToTime(message.timeStamp)}
