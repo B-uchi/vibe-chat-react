@@ -14,7 +14,7 @@ import CompleteSignup from "./pages/complete-sign-up";
 import "../style.css";
 import Dashboard from "./pages/Dashboard";
 import Spinner from "./components/Spinner";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 import Navbar from "./components/Navbar";
 import Settings from "./pages/Settings";
 import { connect, useDispatch, useSelector } from "react-redux";
@@ -26,48 +26,58 @@ const AuthChecker = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const dispatch = useDispatch();
   const [error, setError] = useState(false);
+  const [reload, setReload] = useState(false)
   const currentUser = useSelector(({ user }) => user.currentUser);
 
+
   useEffect(() => {
+    setLoading(true)
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        if (!currentUser) {
-          const idToken = await user.getIdToken(true);
-          setLoading(false);
-          try {
-            const response = await fetch(
-              "https://vibe-chat-react.onrender.com/api/user/getUser",
-              {
-                method: "GET",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${idToken}`,
-                },
+      try {
+        if (user) {
+          if (!currentUser) {
+            const idToken = await user.getIdToken(true);
+            setLoading(false);
+            try {
+              const response = await fetch(
+                "http://localhost:5000/api/user/getUser",
+                {
+                  method: "GET",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${idToken}`,
+                  },
+                }
+              );
+              const data = await response.json();
+              if (response.status == 200) {
+                dispatch(setCurrentUser(data.userData));
+              } else {
+                setLoading(false);
+                setError(true);
+                toast.error("Network error");
               }
-            );
-            const data = await response.json();
-            if (response.status == 200) {
-              dispatch(setCurrentUser(data.userData));
-            } else {
-              setLoading(false);
+            } catch (error) {
               setError(true);
               toast.error("Network error");
+              console.log("Error: ", error);
             }
-          } catch (error) {
-            setError(true);
-            toast.error("Network error");
-            console.log("Error: ", error);
           }
+        } else {
+          setLoading(false);
+          toast.error("Session expired. Please sign in again.");
+          navigate("/sign-in");
         }
-      } else {
+      } catch (error) {
+        console.log(error)
         setLoading(false);
-        toast.error("Session expired. Please sign in again.");
-        navigate("/sign-in");
+        setError(true)
+        toast.error("Network error");
       }
     });
 
     return () => unsubscribe();
-  }, [navigate]);
+  }, [reload]);
 
   if (loading) {
     return (
@@ -77,10 +87,14 @@ const AuthChecker = ({ children }) => {
     );
   }
 
-  if (loading) {
+  if (error) {
     return (
       <div className="relative h-[100vh]">
-        <h1>An error occured</h1>
+        <Toaster richColors position="top-right" />
+        <div className="flex flex-col justify-center items-center h-full gap-2">
+          <h1 className="text-lg">An error occured</h1>
+          <button onClick={() => setReload(!reload)} className="p-3 rounded-md bg-[#313131] text-white font-bold">Reload</button>
+        </div>
       </div>
     );
   }
