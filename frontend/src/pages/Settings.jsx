@@ -40,9 +40,9 @@ const Settings = ({ currentUser }) => {
                 <div>
                   <label>Bio</label>
                   <textarea placeholder={currentUser && currentUser.profileData.bio} rows={3} value={bio} onChange={(e) => {
-                    if (charactersLeft > 0) {
+                    if (e.target.value.length <=100) {
                       setBio(e.target.value)
-                      setCharactersLeft(charactersLeft - 1)
+                      setCharactersLeft(100-e.target.value.length)
                     }
                   }} className='w-full p-2 border-[1px] border-[#e1e1e1] resize-none rounded-md' />
                 </div>
