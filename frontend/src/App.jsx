@@ -40,7 +40,7 @@ const AuthChecker = ({ children }) => {
             setLoading(false);
             try {
               const response = await fetch(
-                "https://vibe-chat-react.onrender.com/api/user/getUser",
+                "http://localhost:5000/api/user/getUser",
                 {
                   method: "GET",
                   headers: {
@@ -65,6 +65,7 @@ const AuthChecker = ({ children }) => {
           }
         } else {
           setLoading(false);
+          setError(false)
           toast.error("Session expired. Please sign in again.");
           navigate("/sign-in");
         }
