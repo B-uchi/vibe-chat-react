@@ -105,7 +105,7 @@ const CompleteSignup = () => {
       setLoading(true);
       try {
         const response = await fetch(
-          "https://vibe-chat-react.onrender.com/api/user/completeSignup",
+          "http://localhost:5000/api/user/completeSignup",
           {
             method: "POST",
             body: JSON.stringify({ username, photoId: imgUrl }),
@@ -116,8 +116,11 @@ const CompleteSignup = () => {
           }
         );
         if (response.status == 200) {
-          navigate("/");
           setLoading(false);
+          return navigate("/");
+        }
+        if (response.status == 409) {
+          return toast.error("Username already exists")
         }
       } catch (error) {
         setLoading(false);
@@ -184,7 +187,7 @@ const CompleteSignup = () => {
               <input
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => setUsername(e.target.value.trim())}
                 placeholder="Username"
                 className="border-[1px] border-[#3333333a] p-2 flex-grow rounded-md font-rowdies"
               />
