@@ -13,14 +13,15 @@ import { clearCurrentUser } from "../redux/userReducer/userAction";
 const Navbar = () => {
   const dispatch = useDispatch();
   const currentUser = useSelector(({ user }) => user.currentUser);
+  console.log(currentUser)
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
-  
+
   const signOutUser = () => {
     signOut(auth)
       .then(() => {
         setShowDropdown(false);
-        dispatch(clearCurrentUser);
+        dispatch(clearCurrentUser());
         navigate("/sign-in");
       })
       .catch((error) => {
@@ -50,8 +51,9 @@ const Navbar = () => {
             ) : (
               <img
                 className="w-[30px] h-[30px] rounded-full"
-                src={currentUser && currentUser.profileData.profilePhoto}
+                src={`${currentUser && currentUser.profileData.profilePhoto}?${new Date().getTime()}`}
               />
+
             )}
             {showDropdown ? <RxCaretUp size={24} /> : <RxCaretDown size={24} />}
           </button>
