@@ -34,7 +34,7 @@ const ChatWindow = ({
       if (activeChat) {
         const idToken = await user.getIdToken(true);
         const response = await fetch(
-          "https://vibe-chat-react.onrender.com/api/chat/fetchMessages",
+          "http://localhost:5000/api/chat/fetchMessages",
           {
             method: "POST",
             body: JSON.stringify({ chatId: activeChat.chatId }),
@@ -108,7 +108,7 @@ const ChatWindow = ({
     }
     const idToken = await user.getIdToken(true);
     const response = await fetch(
-      "https://vibe-chat-react.onrender.com/api/chat/sendMessage",
+      "http://localhost:5000/api/chat/sendMessage",
       {
         method: "POST",
         body: JSON.stringify({
@@ -224,7 +224,7 @@ const ChatWindow = ({
               </button>
             </div>
           </div>
-          <div className="h-[92vh] max-h-[92vh] p-2 relative flex flex-col overflow-hidden">
+          <div className="h-[92vh] max-h-[92vh] relative flex flex-col overflow-hidden">
             {fetchingMsgs ? (
               <div className="loader-black absolute right-[50%] bottom-[50%] translate-x-[50%]"></div>
             ) : (
