@@ -10,6 +10,11 @@ const userReducer = (state = INITIAL_USER_STATE, action) => {
         ...state,
         currentUser: action.payload,
       };
+    case "UPDATE_CURRENT_USER":
+      return {
+        ...state,
+        currentUser: action.payload
+      }
     case "CLEAR_CURRENT_USER":
       return {
         ...state,
