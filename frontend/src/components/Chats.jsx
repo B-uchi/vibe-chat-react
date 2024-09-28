@@ -14,6 +14,7 @@ import { db } from "../lib/firebaseConfig";
 import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import FriendRequests from "./FriendRequests";
+import ChatSkeletonLoader from "./ChatSkeletonLoader";
 
 const Chats = ({
   setActiveChat,
@@ -36,7 +37,7 @@ const Chats = ({
       try {
         const idToken = await user.getIdToken(true);
         const response = await fetch(
-          "https://vibe-chat-react.onrender.com/api/user/getChats",
+          "http://localhost:5000/api/user/getChats",
           {
             method: "GET",
             headers: {
@@ -127,8 +128,6 @@ const Chats = ({
     setActiveTab(tab)
   }
 
-  console.log(activeTab)
-
   return (
     <section className="p-3 font-poppins h-full flex flex-col">
       <div className="h-[90px]">
@@ -161,7 +160,8 @@ const Chats = ({
             <h2 className="font-bold text-2xl">Chats</h2>
           </div>
           {loading ? (
-            <div className="loader-black absolute right-[50%] bottom-[50%] translate-x-[50%]"></div>
+            // <div className="loader-black absolute right-[50%] bottom-[50%] translate-x-[50%]"></div>
+            <ChatSkeletonLoader/>
           ) : error ? (
             <div className="absolute right-[50%] bottom-[50%] translate-x-[50%]">
               An error occured
