@@ -13,7 +13,6 @@ import { clearCurrentUser } from "../redux/userReducer/userAction";
 const Navbar = () => {
   const dispatch = useDispatch();
   const currentUser = useSelector(({ user }) => user.currentUser);
-  console.log(currentUser)
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
 
