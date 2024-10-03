@@ -94,7 +94,7 @@ const Dashboard = () => {
       </div>
       {addPersonModal && (
         <div className="bg-[rgba(0,0,0,0.4)] bg-opacity-50 w-full h-full absolute flex justify-center items-center">
-          <div className="relative bg-white rounded-md border-[1px] border-[#e1e1e1] lg:w-1/3 h-[80%] overflow-auto p-3 flex flex-col">
+          <div className="relative bg-white rounded-md border-[1px] border-[#e1e1e1] lg:w-1/3 min-w-fit h-[80%] overflow-auto p-3 flex flex-col">
             <div className="flex gap-4 items-center border-b-[1px] border-[#e1e1e1] mb-2">
               <button className="mr-2" onClick={() => setAddPersonModal(false)}>
                 <IoMdArrowBack size={25} />
