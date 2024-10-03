@@ -107,20 +107,17 @@ const ChatWindow = ({
       return toast.error("Message can't be empty");
     }
     const idToken = await user.getIdToken(true);
-    const response = await fetch(
-      "http://localhost:5000/api/chat/sendMessage",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          messageBody,
-          chatId: activeChat.chatId,
-        }),
-        headers: {
-          "Content-type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      }
-    );
+    const response = await fetch("http://localhost:5000/api/chat/sendMessage", {
+      method: "POST",
+      body: JSON.stringify({
+        messageBody,
+        chatId: activeChat.chatId,
+      }),
+      headers: {
+        "Content-type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+    });
     if (response.status == 201) {
       setMessageBody("");
     } else {
@@ -183,9 +180,11 @@ const ChatWindow = ({
     <section className="h-full flex flex-col relative">
       <Toaster position="top-right" richColors />
       {!activeChat ? (
-        <p className="w-full text-center font-rowdies absolute right-[50%] bottom-[50%] translate-x-[50%]">
-          Click on a chat to catch a vibe
-        </p>
+        <div className="">
+          <p className="w-full text-xl text-center font-rowdies absolute right-[50%] bottom-[50%] translate-x-[50%]">
+            Click on a chat to catch a vibe
+          </p>
+        </div>
       ) : (
         <div className="flex flex-col relative h-screen overflow-hidden">
           <div className="bg-white p-1 h-[8vh] shrink-0 border-b-[#e1e1e1] border-b-[1px] flex justify-between items-center font-poppins">
@@ -216,11 +215,17 @@ const ChatWindow = ({
               </div>
             </div>
             <div className="flex items-center gap-7 mr-5">
-              <button className="hover:bg-[#efefef] p-2 rounded-full" title="Call">
-                <MdCall color="#313131" size={23}/>
+              <button
+                className="hover:bg-[#efefef] p-2 rounded-full"
+                title="Call"
+              >
+                <MdCall color="#313131" size={23} />
               </button>
-              <button className="hover:bg-[#efefef] p-2 rounded-full" title="More options">
-                <IoEllipsisVertical color="#313131" size={23}/>
+              <button
+                className="hover:bg-[#efefef] p-2 rounded-full"
+                title="More options"
+              >
+                <IoEllipsisVertical color="#313131" size={23} />
               </button>
             </div>
           </div>
