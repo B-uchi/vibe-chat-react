@@ -30,7 +30,7 @@ const Conversation = ({ data, onClick }) => {
     if (date < yesterday) {
       return date.toLocaleDateString("en-US", {
         day: "numeric",
-        weekday: "short",
+        month: "short",
       });
     } else {
       if (date.getHours() < 12) {
@@ -69,7 +69,7 @@ const Conversation = ({ data, onClick }) => {
           )}
         </div>
       </div>
-      <div className="flex flex-col items-end mr-2 w-[20%] lg:w-[15%]">
+      <div className="flex flex-col items-end mr-2 w-[20%] lg:w-[15%] min-w-fit">
         {timestamp && <small>{convertTimestampToTime(timestamp)}</small>}
         <div className="bg-[#313131] text-white text-[10px] font-bold p-1 px-2.5 rounded-full">
           1
