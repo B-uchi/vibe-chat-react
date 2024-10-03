@@ -56,7 +56,7 @@ export const setUsername = async (req, res) => {
   console.log("req received to completeSignup");
   const { username, photoId } = req.body;
   try {
-    if (checkDuplicateUsername(username)) {
+    if (await checkDuplicateUsername(username)) {
       return res.status(409).json({ message: "Username already exists" });
     } else {
       const userRef = db.collection("users").doc(req.uid);
