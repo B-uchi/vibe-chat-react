@@ -20,6 +20,7 @@ const Navbar = () => {
     signOut(auth)
       .then(() => {
         setShowDropdown(false);
+        sessionStorage.clear()
         dispatch(clearCurrentUser());
         navigate("/sign-in");
       })
