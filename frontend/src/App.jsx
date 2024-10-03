@@ -20,24 +20,27 @@ import Settings from "./pages/Settings";
 import { connect, useDispatch, useSelector } from "react-redux";
 import { setCurrentUser } from "./redux/userReducer/userAction";
 import MobileChatWindow from "./pages/MobileChatWindow";
+import ResetPassword from "./pages/ResetPassword";
 
 const AuthChecker = ({ children }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const dispatch = useDispatch();
   const [error, setError] = useState(false);
-  const [reload, setReload] = useState(false)
+  const [reload, setReload] = useState(false);
   const currentUser = useSelector(({ user }) => user.currentUser);
 
-
   useEffect(() => {
-    setLoading(true)
+    setLoading(true);
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
         if (user) {
-          if (!currentUser) {
+          const storedUser = sessionStorage.getItem("currentUser");
+
+          if (!storedUser) {
             const idToken = await user.getIdToken(true);
             setLoading(false);
+
             try {
               const response = await fetch(
                 "http://localhost:5000/api/user/getUser",
@@ -49,9 +52,14 @@ const AuthChecker = ({ children }) => {
                   },
                 }
               );
+
               const data = await response.json();
-              if (response.status == 200) {
+              if (response.status === 200) {
                 dispatch(setCurrentUser(data.userData));
+                sessionStorage.setItem(
+                  "currentUser",
+                  JSON.stringify(data.userData)
+                );
               } else {
                 setLoading(false);
                 setError(true);
@@ -60,25 +68,75 @@ const AuthChecker = ({ children }) => {
             } catch (error) {
               setError(true);
               toast.error("Network error");
-              console.log("Error: ", error);
             }
+          } else {
+            dispatch(setCurrentUser(JSON.parse(storedUser)));
+            setLoading(false);
           }
         } else {
           setLoading(false);
-          setError(false)
           toast.error("Session expired. Please sign in again.");
           navigate("/sign-in");
         }
       } catch (error) {
-        console.log(error)
         setLoading(false);
-        setError(true)
+        setError(true);
         toast.error("Network error");
       }
     });
 
     return () => unsubscribe();
   }, [reload]);
+
+  // useEffect(() => {
+  //   setLoading(true)
+  //   const unsubscribe = onAuthStateChanged(auth, async (user) => {
+  //     try {
+  //       if (user) {
+  //         if (!currentUser) {
+  //           const idToken = await user.getIdToken(true);
+  //           setLoading(false);
+  //           try {
+  //             const response = await fetch(
+  //               "http://localhost:5000/api/user/getUser",
+  //               {
+  //                 method: "GET",
+  //                 headers: {
+  //                   "Content-Type": "application/json",
+  //                   Authorization: `Bearer ${idToken}`,
+  //                 },
+  //               }
+  //             );
+  //             const data = await response.json();
+  //             if (response.status == 200) {
+  //               dispatch(setCurrentUser(data.userData));
+  //             } else {
+  //               setLoading(false);
+  //               setError(true);
+  //               toast.error("Network error");
+  //             }
+  //           } catch (error) {
+  //             setError(true);
+  //             toast.error("Network error");
+  //             console.log("Error: ", error);
+  //           }
+  //         }
+  //       } else {
+  //         setLoading(false);
+  //         setError(false)
+  //         toast.error("Session expired. Please sign in again.");
+  //         navigate("/sign-in");
+  //       }
+  //     } catch (error) {
+  //       console.log(error)
+  //       setLoading(false);
+  //       setError(true)
+  //       toast.error("Network error");
+  //     }
+  //   });
+
+  //   return () => unsubscribe();
+  // }, [reload]);
 
   if (loading) {
     return (
@@ -94,7 +152,12 @@ const AuthChecker = ({ children }) => {
         <Toaster richColors position="top-right" />
         <div className="flex flex-col justify-center items-center h-full gap-2">
           <h1 className="text-lg">An error occured</h1>
-          <button onClick={() => setReload(!reload)} className="p-3 rounded-md bg-[#313131] text-white font-bold">Reload</button>
+          <button
+            onClick={() => setReload(!reload)}
+            className="p-3 rounded-md bg-[#313131] text-white font-bold"
+          >
+            Reload
+          </button>
         </div>
       </div>
     );
@@ -105,8 +168,10 @@ const AuthChecker = ({ children }) => {
 
 function App() {
   const location = useLocation();
-  const hideNavbarRoutes = ["/sign-in", "/complete-sign-up"];
-  const hideNavbar = hideNavbarRoutes.includes(location.pathname) || /^\/chat\/[^/]+$/.test(location.pathname);
+  const hideNavbarRoutes = ["/sign-in", "/complete-sign-up", '/reset-password'];
+  const hideNavbar =
+    hideNavbarRoutes.includes(location.pathname) ||
+    /^\/chat\/[^/]+$/.test(location.pathname);
 
   return (
     <AuthChecker>
@@ -122,6 +187,7 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/complete-sign-up" element={<CompleteSignup />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             {window.innerWidth < 769 && (
               <Route path="/chat/:chatId" element={<MobileChatWindow />} />
             )}
