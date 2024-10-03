@@ -27,9 +27,11 @@ const Chats = ({
 }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [activeTab, setActiveTab] = useState("friends")
+  const [activeTab, setActiveTab] = useState("friends");
   const navigate = useNavigate();
   const [tab, setTab] = useState("chats");
+  const [filteredChats, setFilteredChats] = useState(userChats);
+  const [searchTerm, setSearchTerm] = useState("");
   const user = useAuth().user;
 
   useEffect(() => {
@@ -124,31 +126,64 @@ const Chats = ({
   };
 
   const handleTabClick = (tab) => {
-    setTab(tab)
-    setActiveTab(tab)
-  }
+    setTab(tab);
+    setActiveTab(tab);
+  };
+
+  const searchChat = (e) => {
+    e.preventDefault();
+    setFilteredChats(
+      userChats.filter((chat) =>
+        chat.participantsData.username
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())
+      )
+    );
+  };
+
+  useEffect(() => {
+    const chatListReset = () => {
+      if (!searchTerm) {
+        setFilteredChats(userChats);
+      }
+    };
+    chatListReset();
+  }, [searchTerm]);
 
   return (
     <section className="p-3 font-poppins h-full flex flex-col">
       <div className="h-[90px]">
-        <div className="w-full p-1 bg-[#efefef] rounded-md flex items-center">
-          <IoSearch size={25} className="mr-2" />
+        <form
+          onSubmit={searchChat}
+          className="w-full p-1 bg-[#efefef] rounded-md flex items-center"
+        >
+          <button type="submit" className="mr-2" onClick={searchChat}>
+            <IoSearch size={25} />
+          </button>
           <input
             type="text"
             placeholder="Search"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+            }}
             className="bg-transparent flex-grow p-1 outline-none"
           />
-        </div>
+        </form>
         <div className="flex w-full justify-between mt-3 border-b-[1px]">
           <button
             onClick={() => handleTabClick("chats")}
-            className={`text-center w-1/2 p-2 border-r-[1px] rounded-tl-md ${activeTab == "chats" ? " bg-[#efefef] " : " hover:bg-[#efefef]"}`}
+            className={`text-center w-1/2 p-2 border-r-[1px] rounded-tl-md ${
+              activeTab == "chats" ? " bg-[#efefef] " : " hover:bg-[#efefef]"
+            }`}
           >
             Friends
           </button>
           <button
             onClick={() => handleTabClick("requests")}
-            className={`text-center w-1/2 p-2 font-bold rounded-tr-md ${activeTab == "requests" ? " bg-[#efefef] " : " hover:bg-[#efefef]"}`}
+            className={`text-center w-1/2 p-2 font-bold rounded-tr-md ${
+              activeTab == "requests" ? " bg-[#efefef] " : " hover:bg-[#efefef]"
+            }`}
           >
             Requests (2)
           </button>
@@ -161,13 +196,13 @@ const Chats = ({
           </div>
           {loading ? (
             // <div className="loader-black absolute right-[50%] bottom-[50%] translate-x-[50%]"></div>
-            <ChatSkeletonLoader/>
+            <ChatSkeletonLoader />
           ) : error ? (
             <div className="absolute right-[50%] bottom-[50%] translate-x-[50%]">
               An error occured
             </div>
-          ) : userChats && userChats.length > 0 ? (
-            userChats.map((chat) => (
+          ) : filteredChats && filteredChats.length > 0 ? (
+            filteredChats.map((chat) => (
               <Conversation
                 key={chat.chatId}
                 onClick={openChatWindow}
