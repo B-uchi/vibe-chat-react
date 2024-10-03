@@ -28,115 +28,60 @@ const AuthChecker = ({ children }) => {
   const dispatch = useDispatch();
   const [error, setError] = useState(false);
   const [reload, setReload] = useState(false);
-  const currentUser = useSelector(({ user }) => user.currentUser);
 
   useEffect(() => {
     setLoading(true);
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      try {
-        if (user) {
-          const storedUser = sessionStorage.getItem("currentUser");
-
-          if (!storedUser) {
-            const idToken = await user.getIdToken(true);
-            setLoading(false);
-
-            try {
-              const response = await fetch(
-                "http://localhost:5000/api/user/getUser",
-                {
-                  method: "GET",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${idToken}`,
-                  },
-                }
-              );
-
-              const data = await response.json();
-              if (response.status === 200) {
-                dispatch(setCurrentUser(data.userData));
-                sessionStorage.setItem(
-                  "currentUser",
-                  JSON.stringify(data.userData)
-                );
-              } else {
-                setLoading(false);
-                setError(true);
-                toast.error("Network error");
-              }
-            } catch (error) {
-              setError(true);
-              toast.error("Network error");
-            }
-          } else {
-            dispatch(setCurrentUser(JSON.parse(storedUser)));
-            setLoading(false);
-          }
-        } else {
-          setLoading(false);
-          toast.error("Session expired. Please sign in again.");
-          navigate("/sign-in");
-        }
-      } catch (error) {
-        setLoading(false);
-        setError(true);
-        toast.error("Network error");
+      if (!user) {
+        handleSessionExpired();
+        return;
       }
+  
+      const storedUser = sessionStorage.getItem("currentUser");
+      if (storedUser) {
+        dispatch(setCurrentUser(JSON.parse(storedUser)));
+        setLoading(false);
+        return;
+      }
+  
+      await fetchUserData(user);
     });
-
+  
     return () => unsubscribe();
   }, [reload]);
-
-  // useEffect(() => {
-  //   setLoading(true)
-  //   const unsubscribe = onAuthStateChanged(auth, async (user) => {
-  //     try {
-  //       if (user) {
-  //         if (!currentUser) {
-  //           const idToken = await user.getIdToken(true);
-  //           setLoading(false);
-  //           try {
-  //             const response = await fetch(
-  //               "http://localhost:5000/api/user/getUser",
-  //               {
-  //                 method: "GET",
-  //                 headers: {
-  //                   "Content-Type": "application/json",
-  //                   Authorization: `Bearer ${idToken}`,
-  //                 },
-  //               }
-  //             );
-  //             const data = await response.json();
-  //             if (response.status == 200) {
-  //               dispatch(setCurrentUser(data.userData));
-  //             } else {
-  //               setLoading(false);
-  //               setError(true);
-  //               toast.error("Network error");
-  //             }
-  //           } catch (error) {
-  //             setError(true);
-  //             toast.error("Network error");
-  //             console.log("Error: ", error);
-  //           }
-  //         }
-  //       } else {
-  //         setLoading(false);
-  //         setError(false)
-  //         toast.error("Session expired. Please sign in again.");
-  //         navigate("/sign-in");
-  //       }
-  //     } catch (error) {
-  //       console.log(error)
-  //       setLoading(false);
-  //       setError(true)
-  //       toast.error("Network error");
-  //     }
-  //   });
-
-  //   return () => unsubscribe();
-  // }, [reload]);
+  
+  const handleSessionExpired = () => {
+    setLoading(false);
+    toast.error("Session expired. Please sign in again.");
+    navigate("/sign-in");
+  };
+  
+  const fetchUserData = async (user) => {
+    try {
+      const idToken = await user.getIdToken(true);
+      const response = await fetch("http://localhost:5000/api/user/getUser", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
+  
+      if (!response.ok) {
+        throw new Error("Network error");
+      }
+  
+      const data = await response.json();
+      dispatch(setCurrentUser(data.userData));
+      sessionStorage.setItem("currentUser", JSON.stringify(data.userData));
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      setError(true);
+      toast.error(error.message || "Network error");
+    }
+  };
+  
 
   if (loading) {
     return (
