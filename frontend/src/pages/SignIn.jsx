@@ -8,6 +8,8 @@ import {
   sendEmailVerification,
   GoogleAuthProvider,
   signInWithPopup,
+  setPersistence,
+  browserSessionPersistence,
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import Spinner from "../components/Spinner";
@@ -33,6 +35,7 @@ const SignIn = () => {
 
     try {
       toast.info("Signing in...");
+      await setPersistence(auth, browserSessionPersistence);
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
@@ -40,13 +43,10 @@ const SignIn = () => {
       );
       const user = userCredential.user;
       const userDoc = await getDoc(doc(db, "users", user.uid));
-
       if (userDoc.data()?.userName) {
-        toast.success("Signed in successfully");
         setLoading(false);
         navigate("/");
       } else {
-        toast.success("Signed in successfully");
         setLoading(false);
         navigate("/complete-sign-up");
       }
@@ -67,6 +67,7 @@ const SignIn = () => {
     }
 
     try {
+      await setPersistence(auth, browserSessionPersistence);
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -103,6 +104,7 @@ const SignIn = () => {
     const provider = new GoogleAuthProvider();
 
     try {
+      await setPersistence(auth, browserSessionPersistence);
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       const userDoc = await getDoc(doc(db, "users", user.uid));
@@ -122,10 +124,15 @@ const SignIn = () => {
         navigate("/complete-sign-up");
       }
     } catch (error) {
+      toast.error(`An error occurred: ${error.message}`);
       console.log("Error with Google sign-in:", error);
-      toast.error("An error occurred");
+
       setLoading(false);
     }
+  };
+
+  const forgotPassword = () => {
+    navigate("/reset-password");
   };
 
   return (
@@ -152,35 +159,47 @@ const SignIn = () => {
               Sign Into Vibe Chat
             </h1>
             <form className="" onSubmit={(e) => signIn(e)}>
-              <div className="flex flex-col">
-                <label>Email:</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="border-slate-300 border-[1px] p-2 rounded-md mt-1"
-                  placeholder="Enter your email"
-                />
+              <div className="">
+                <label className="flex flex-col">
+                  Email:
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="border-slate-300 border-[1px] p-2 rounded-md mt-1"
+                    placeholder="Enter your email"
+                  />
+                </label>
               </div>
-              <div className="flex flex-col mt-3">
-                <label>Password:</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="border-slate-300 border-[1px] p-2 rounded-md mt-1"
-                  placeholder="Enter your password"
-                />
+              <div className="mt-3">
+                <label className="flex flex-col">
+                  Password:
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="border-slate-300 border-[1px] p-2 rounded-md mt-1"
+                    placeholder="Enter your password"
+                  />
+                </label>
               </div>
-              <div className="mt-3 text-center">
+              <div className="mt-3 text-center flex flex-col">
                 <button
                   type="submit"
                   className="p-2 w-full text-center py-3 bg-[#313131] rounded-md text-white font-bold font-poppins"
                 >
                   Sign In
                 </button>
-                <p className="mt-2">Forgot Password?</p>
-                <button className="mt-2" onClick={() => setPage("signup")}>
+                <button
+                  className="mt-2 hover:underline"
+                  onClick={forgotPassword}
+                >
+                  Forgot Password?
+                </button>
+                <button
+                  className="mt-2 hover:underline"
+                  onClick={() => setPage("signup")}
+                >
                   Don't have an Account?
                 </button>
               </div>
@@ -210,45 +229,53 @@ const SignIn = () => {
             <form className="" onSubmit={(e) => signUp(e)}>
               <div className="flex">
                 <div className="w-1/2">
-                  <label>First Name:</label>
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value.trim())}
-                    className="border-slate-300 w-[95%] border-[1px] p-2 rounded-md mt-1"
-                    placeholder="Enter your first name"
-                  />
+                  <label>
+                    First Name:
+                    <input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value.trim())}
+                      className="border-slate-300 w-[95%] border-[1px] p-2 rounded-md mt-1"
+                      placeholder="Enter your first name"
+                    />
+                  </label>
                 </div>
                 <div className="w-1/2">
-                  <label>Last Name:</label>
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value.trim())}
-                    className="border-slate-300 w-full border-[1px] p-2 rounded-md mt-1"
-                    placeholder="Enter your last name"
-                  />
+                  <label>
+                    Last Name:
+                    <input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value.trim())}
+                      className="border-slate-300 w-full border-[1px] p-2 rounded-md mt-1"
+                      placeholder="Enter your last name"
+                    />
+                  </label>
                 </div>
               </div>
-              <div className="flex flex-col mt-3">
-                <label>Email:</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="border-slate-300 border-[1px] p-2 rounded-md mt-1"
-                  placeholder="Enter your email"
-                />
+              <div className="mt-3">
+                <label className="flex flex-col">
+                  Email:
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="border-slate-300 border-[1px] p-2 rounded-md mt-1"
+                    placeholder="Enter your email"
+                  />
+                </label>
               </div>
-              <div className="flex flex-col mt-3">
-                <label>Password:</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="border-slate-300 border-[1px] p-2 rounded-md mt-1"
-                  placeholder="Enter your password"
-                />
+              <div className="mt-3">
+                <label className="flex flex-col">
+                  Password:
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="border-slate-300 border-[1px] p-2 rounded-md mt-1"
+                    placeholder="Enter your password"
+                  />
+                </label>
               </div>
               <div className="mt-3 text-center">
                 <button
@@ -257,7 +284,10 @@ const SignIn = () => {
                 >
                   Sign Up
                 </button>
-                <button className="mt-2" onClick={() => setPage("signin")}>
+                <button
+                  className="mt-2 hover:underline"
+                  onClick={() => setPage("signin")}
+                >
                   Already have an Account?
                 </button>
               </div>
@@ -268,7 +298,10 @@ const SignIn = () => {
               <div className="border-t border-gray-300 flex-grow ml-3"></div>
             </div>
             <div className="mt-3">
-              <button className="p-2 w-full py-3 rounded-md text-black border-[#313131] border-[1px] font-poppins flex items-center gap-2 justify-center">
+              <button
+                onClick={() => handleGoogleSignIn()}
+                className="p-2 w-full py-3 rounded-md text-black border-[#313131] border-[1px] font-poppins flex items-center gap-2 justify-center"
+              >
                 <FcGoogle /> Sign Up with Google
               </button>
             </div>
