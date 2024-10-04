@@ -52,7 +52,7 @@ const MobileChatWindow = ({
       if (activeChat) {
         const idToken = await user.getIdToken(true);
         const response = await fetch(
-          "http://localhost:5000/api/chat/fetchMessages",
+          "https://vibe-chat-react.onrender.com/api/chat/fetchMessages",
           {
             method: "POST",
             body: JSON.stringify({ chatId: activeChat.chatId }),
@@ -126,7 +126,7 @@ const MobileChatWindow = ({
       return toast.error("Message can't be empty");
     }
     const idToken = await user.getIdToken(true);
-    const response = await fetch("http://localhost:5000/api/chat/sendMessage", {
+    const response = await fetch("https://vibe-chat-react.onrender.com/api/chat/sendMessage", {
       method: "POST",
       body: JSON.stringify({
         messageBody,
