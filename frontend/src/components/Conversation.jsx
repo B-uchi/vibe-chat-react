@@ -10,6 +10,7 @@ const Conversation = ({ data, onClick }) => {
     chatId,
     participantId,
     isFriend,
+    initiatedBy,
   } = data;
 
   function convertTimestampToTime(timestamp) {
@@ -34,26 +35,26 @@ const Conversation = ({ data, onClick }) => {
         month: "short",
       });
     } else {
-      if (date.getHours() < 12) {
-        return date.toLocaleTimeString("en-US", {
-          hour12: true,
-          hour: "numeric",
-          minute: "numeric",
-        });
-      } else {
-        return date.toLocaleTimeString("en-US", {
-          hour12: true,
-          hour: "numeric",
-          minute: "numeric",
-        });
-      }
+      return date.toLocaleTimeString("en-US", {
+        hour12: true,
+        hour: "numeric",
+        minute: "numeric",
+      });
     }
   }
 
   return (
     <div
       onClick={() =>
-        onClick({ username, profilePhoto, onlineStatus, chatId, participantId, isFriend })
+        onClick({
+          username,
+          profilePhoto,
+          onlineStatus,
+          chatId,
+          participantId,
+          isFriend,
+          initiatedBy,
+        })
       }
       className="flex items-center cursor-pointer hover:bg-[#efefef] rounded-md"
     >
