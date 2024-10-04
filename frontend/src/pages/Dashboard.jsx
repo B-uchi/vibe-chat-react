@@ -59,6 +59,7 @@ const Dashboard = () => {
         onlineStatus,
         chatId: data.chatId,
         participantId: id,
+        isFriend: data.chatData.isFriend,
       });
       setAddPersonModal(false);
     } else {
@@ -111,7 +112,7 @@ const Dashboard = () => {
             </div>
             <div className="flex-grow relative">
               {loading ? (
-                <AddUserLoader/>
+                <AddUserLoader />
               ) : users && users.length > 0 ? (
                 users.map((user) => (
                   <div
