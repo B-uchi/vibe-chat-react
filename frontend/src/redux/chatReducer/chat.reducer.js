@@ -2,6 +2,7 @@ const INITIAL_USER_STATE = {
   activeChat: null,
   messages: null,
   userChats: null,
+  chatRequests: null,
 };
 
 const chatReducer = (state = INITIAL_USER_STATE, action) => {
@@ -10,6 +11,11 @@ const chatReducer = (state = INITIAL_USER_STATE, action) => {
       return {
         ...state,
         activeChat: action.payload,
+      };
+    case "SET_CHAT_REQUESTS":
+      return {
+        ...state,
+        chatRequests: action.payload,
       };
     case "SET_USER_CHATS":
       return {

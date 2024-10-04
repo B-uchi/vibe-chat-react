@@ -4,12 +4,17 @@ export const setActiveChat = (chat) => ({
 });
 
 export const clearMessages = () => ({
-  type: "CLEAR_MESSAGES"
-})
+  type: "CLEAR_MESSAGES",
+});
 
 export const setUserChats = (chatList) => ({
   type: "SET_USER_CHATS",
   payload: chatList,
+});
+
+export const setChatRequests = (chatRequests) => ({
+  type: "SET_CHAT_REQUESTS",
+  payload: chatRequests,
 });
 
 export const setMessages = (messages) => ({
