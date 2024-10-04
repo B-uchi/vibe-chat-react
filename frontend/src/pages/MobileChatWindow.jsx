@@ -14,6 +14,7 @@ import { db } from "../lib/firebaseConfig";
 import { FaArrowDown } from "react-icons/fa6";
 import { Navigate } from "react-router-dom";
 import { MdCall } from "react-icons/md";
+import { MdDelete } from "react-icons/md";
 
 const MobileChatWindow = ({
   activeChat,
@@ -24,9 +25,26 @@ const MobileChatWindow = ({
 }) => {
   const [fetchingMsgs, setFetchingMsgs] = useState(true);
   const [messageBody, setMessageBody] = useState("");
+  const [showMessageOptions, setShowMessageOptions] = useState(false);
+  const [selectedMessageId, setSelectedMessageId] = useState("");
   const user = useAuth().user;
   const messagesEndRef = useRef(null);
   let groupedMessages;
+
+
+
+  const showOptions = (id) => {
+    setSelectedMessageId((prevId) => {
+      // If the same message is clicked again, close the options
+      if (prevId === id) {
+        setShowMessageOptions(false);
+        return null; // Deselect the message
+      } else {
+        setShowMessageOptions(true);
+        return id; // Select the new message
+      }
+    });
+  };
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -108,20 +126,17 @@ const MobileChatWindow = ({
       return toast.error("Message can't be empty");
     }
     const idToken = await user.getIdToken(true);
-    const response = await fetch(
-      "http://localhost:5000/api/chat/sendMessage",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          messageBody,
-          chatId: activeChat.chatId,
-        }),
-        headers: {
-          "Content-type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      }
-    );
+    const response = await fetch("http://localhost:5000/api/chat/sendMessage", {
+      method: "POST",
+      body: JSON.stringify({
+        messageBody,
+        chatId: activeChat.chatId,
+      }),
+      headers: {
+        "Content-type": "application/json",
+        Authorization: `Bearer ${idToken}`,
+      },
+    });
     if (response.status == 201) {
       setMessageBody("");
     } else {
@@ -237,9 +252,12 @@ const MobileChatWindow = ({
             ) : (
               <>
                 {messages && messages.length > 0 ? (
-                  <div className="overflow-y-auto h-[83vh] px-3">
+                  <div className="overflow-y-auto h-[83vh] px-3 py-2">
                     {Object.keys(groupedMessages).map((date, index) => (
-                      <div key={index} className="flex flex-col gap-5">
+                      <div
+                        key={index}
+                        className="flex flex-col gap-5 overflow-hidden"
+                      >
                         <p className="text-center font-bold text-gray-500 my-4">
                           {date}
                         </p>
@@ -252,19 +270,37 @@ const MobileChatWindow = ({
                                 : "self-start max-w-[70%] relative w-fit"
                             }
                           >
-                            <div
-                              className={`shadow-sm ${message.senderId !== activeChat.participantId
-                                ? "bg-white"
-                                : "bg-[#313131] text-white"
-                                } break-words border-[1px] border-[#bdbdbd] rounded-full p-4`}
-                            >
-                              {message.message}
+                            <div className="flex items-center relative">
+                              {showMessageOptions &&
+                                selectedMessageId === message.id && (
+                                  <button
+                                    className={`absolute ${
+                                      message.senderId ==
+                                      activeChat.participantId
+                                        ? " right-0 translate-x-[110%] "
+                                        : " left-0 -translate-x-[110%] "
+                                    } top-[50%] bg-red-500 hover:bg-red-400 text-white p-1 rounded`}
+                                  >
+                                    <MdDelete size={20}/>
+                                  </button>
+                                )}
+                              <div
+                                onClick={() => showOptions(message.id)}
+                                className={`shadow-sm ${
+                                  message.senderId !== activeChat.participantId
+                                    ? "bg-white"
+                                    : "bg-[#313131] text-white"
+                                } break-words max-w-full border-[1px] border-[#bdbdbd] rounded-lg p-4 cursor-pointer`}
+                              >
+                                {message.message}
+                              </div>
                             </div>
                             <small
-                              className={`absolute w-[80px] ${message.senderId !== activeChat.participantId
-                                ? "right-3 text-right"
-                                : "left-3 text-left"
-                                }`}
+                              className={`absolute w-[80px] text-[10px] ${
+                                message.senderId !== activeChat.participantId
+                                  ? "right-3 text-right"
+                                  : "left-3 text-left"
+                              }`}
                             >
                               {convertTimestampToTime(message.timeStamp)}
                             </small>

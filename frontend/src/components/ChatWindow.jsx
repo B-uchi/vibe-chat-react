@@ -1,3 +1,11 @@
+// add online indicator to chat window and chatlist
+// properly display number of unread messages
+// when declining a friend request, remove the chat from the chatlist. but then take note of the blocked user id in the user db, so when searching for a user, the blocked user will show with the option to unblock
+// when user is blocked, the user can't send messages to the blocker
+// whe
+// further implement message deletion
+// try to implement voice notes
+
 import { connect } from "react-redux";
 import {
   clearActiveChat,
@@ -14,6 +22,8 @@ import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "../lib/firebaseConfig";
 import { FaArrowDown } from "react-icons/fa6";
 import { MdCall } from "react-icons/md";
+import { MdDelete } from "react-icons/md";
+import { IoMdClose } from "react-icons/io";
 
 const ChatWindow = ({
   activeChat,
@@ -24,9 +34,29 @@ const ChatWindow = ({
 }) => {
   const [fetchingMsgs, setFetchingMsgs] = useState(true);
   const [messageBody, setMessageBody] = useState("");
+  const [showMessageOptions, setShowMessageOptions] = useState(false);
+  const [selectedMessageId, setSelectedMessageId] = useState("");
+  // const [showRequest, setShowRequest] = useState(true);
   const user = useAuth().user;
   const messagesEndRef = useRef(null);
   let groupedMessages;
+
+  const deleteMessage = () => {
+    // implement backend logic first
+  };
+
+  const showOptions = (id) => {
+    setSelectedMessageId((prevId) => {
+      // If the same message is clicked again, close the options
+      if (prevId === id) {
+        setShowMessageOptions(false);
+        return null; // Deselect the message
+      } else {
+        setShowMessageOptions(true);
+        return id; // Select the new message
+      }
+    });
+  };
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -187,7 +217,7 @@ const ChatWindow = ({
         </div>
       ) : (
         <div className="flex flex-col relative h-screen overflow-hidden">
-          <div className="bg-white p-1 h-[8vh] shrink-0 border-b-[#e1e1e1] border-b-[1px] flex justify-between items-center font-poppins">
+          <div className="bg-white relative h-[8vh] shrink-0 border-b-[#e1e1e1] border-b-[1px] flex justify-between items-center font-poppins">
             <div className="flex">
               <button
                 onClick={() => {
@@ -218,6 +248,7 @@ const ChatWindow = ({
               <button
                 className="hover:bg-[#efefef] p-2 rounded-full"
                 title="Call"
+                onClick={() => toast.error("Not functional")}
               >
                 <MdCall color="#313131" size={23} />
               </button>
@@ -228,6 +259,25 @@ const ChatWindow = ({
                 <IoEllipsisVertical color="#313131" size={23} />
               </button>
             </div>
+            {!activeChat.isFriend && (
+              <div className="absolute bottom-0 translate-y-[100%] bg-white p-2 w-full z-30 flex justify-between items-center">
+                <p>
+                  <strong>{activeChat.username}</strong> wants to be your
+                  friend.
+                </p>
+                <div className="flex gap-2">
+                  <button className="bg-[#313131] font-bold rounded-md text-white p-2">
+                    Accept
+                  </button>
+                  <button className="bg-[#313131] font-bold rounded-md text-white p-2">
+                    Decline
+                  </button>
+                  <button>
+                    <IoMdClose size={25} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           <div className="h-[92vh] max-h-[92vh] relative flex flex-col overflow-hidden">
             {fetchingMsgs ? (
@@ -237,7 +287,7 @@ const ChatWindow = ({
                 {messages && messages.length > 0 ? (
                   <div className="overflow-y-auto h-[77vh] px-3">
                     {Object.keys(groupedMessages).map((date, index) => (
-                      <div key={index} className="flex flex-col gap-5">
+                      <div key={index} className="flex flex-col gap-5 ">
                         <p className="text-center font-bold text-gray-500 my-4">
                           {date}
                         </p>
@@ -250,17 +300,33 @@ const ChatWindow = ({
                                 : "self-start max-w-[70%] relative w-fit"
                             }
                           >
-                            <div
-                              className={`shadow-sm ${
-                                message.senderId !== activeChat.participantId
-                                  ? "bg-white"
-                                  : "bg-[#313131] text-white"
-                              } break-words border-[1px] border-[#bdbdbd] rounded-full p-4`}
-                            >
-                              {message.message}
+                            <div className="flex items-center relative">
+                              {showMessageOptions &&
+                                selectedMessageId === message.id && (
+                                  <button
+                                    className={`absolute ${
+                                      message.senderId ==
+                                      activeChat.participantId
+                                        ? " right-0 translate-x-[110%] "
+                                        : " left-0 -translate-x-[110%] "
+                                    } top-[50%] bg-red-500 hover:bg-red-400 text-white p-1 rounded`}
+                                  >
+                                    <MdDelete />
+                                  </button>
+                                )}
+                              <div
+                                onClick={() => showOptions(message.id)}
+                                className={`shadow-sm ${
+                                  message.senderId !== activeChat.participantId
+                                    ? "bg-white"
+                                    : "bg-[#313131] text-white"
+                                } break-words max-w-full border-[1px] border-[#bdbdbd] rounded-lg p-4 cursor-pointer`}
+                              >
+                                {message.message}
+                              </div>
                             </div>
                             <small
-                              className={`absolute w-[80px] ${
+                              className={`absolute w-[80px]  ${
                                 message.senderId !== activeChat.participantId
                                   ? "right-3 text-right"
                                   : "left-3 text-left"
