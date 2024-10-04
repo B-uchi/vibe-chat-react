@@ -5,6 +5,7 @@ import {
   clearActiveChat,
   clearMessages,
   setActiveChat,
+  setChatRequests,
   setUserChats,
 } from "../redux/chatReducer/chatAction";
 import { useEffect, useRef, useState } from "react";
@@ -13,19 +14,21 @@ import { toast } from "sonner";
 import { db } from "../lib/firebaseConfig";
 import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
-import FriendRequests from "./FriendRequests";
 import ChatSkeletonLoader from "./ChatSkeletonLoader";
 
 const Chats = ({
   setActiveChat,
   clearActiveChat,
   setUserChats,
+  chatRequests,
+  setChatRequests,
   userChats,
   chatCreated,
   clearMessages,
   activeChat,
 }) => {
   const [loading, setLoading] = useState(true);
+  const [requestTabLoading, setRequestTabLoading] = useState(true);
   const [error, setError] = useState(false);
   const [activeTab, setActiveTab] = useState("friends");
   const navigate = useNavigate();
@@ -50,6 +53,7 @@ const Chats = ({
         );
         if (response.status == 200) {
           const data = await response.json();
+          console.log(data)
           setUserChats(data.chats);
           setLoading(false);
           setError(false);
@@ -58,11 +62,42 @@ const Chats = ({
           setError(true);
         }
       } catch (error) {
-        toast.error("A network error occured.");
+        toast.error("A network error occured. Couldn't fetch chats");
         setLoading(false);
         setError(true);
       }
     };
+
+    const fetchChatRequests = async () => {
+      try {
+        const idToken = await user.getIdToken(true);
+        const response = await fetch(
+          "http://localhost:5000/api/user/getRequests",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${idToken}`,
+            },
+          }
+        );
+        if (response.status == 200) {
+          const data = await response.json();
+          setChatRequests(data.chatRequests);
+          setRequestTabLoading(false);
+          setError(false);
+        } else {
+          setRequestTabLoading(false);
+          setError(true);
+        }
+      } catch (error) {
+        toast.error("A network error occured. Couldn't fetch message requests");
+        setRequestTabLoading(false);
+        setError(true);
+      }
+    };
+
+    fetchChatRequests();
     fetchUserChats();
   }, [chatCreated]);
 
@@ -185,7 +220,7 @@ const Chats = ({
               activeTab == "requests" ? " bg-[#efefef] " : " hover:bg-[#efefef]"
             }`}
           >
-            Requests (2)
+            Requests {chatRequests && chatRequests.length > 0 ? `(${chatRequests.length})` : "(0)"}
           </button>
         </div>
       </div>
@@ -201,8 +236,41 @@ const Chats = ({
             <div className="absolute right-[50%] bottom-[50%] translate-x-[50%]">
               An error occured
             </div>
-          ) : filteredChats && filteredChats.length > 0 ? (
-            filteredChats.map((chat) => (
+          ) : userChats && userChats.length > 0 ? (
+            userChats.map((chat) => (
+              <Conversation
+                key={chat.chatId}
+                onClick={openChatWindow}
+                data={{
+                  participantId: chat.participantsData.id,
+                  chatId: chat.chatId,
+                  onlineStatus: chat.participantsData.onlineStatus,
+                  lastMessage: chat.lastMessage,
+                  username: chat.participantsData.username,
+                  timestamp: chat.lastMessageTimeStamp,
+                  profilePhoto: chat.participantsData.profilePhoto,
+                  isFriend: chat.isFriend,
+                }}
+              />
+            ))
+          ) : (
+            <p className="mt-2">No chats found...</p>
+          )}
+        </div>
+      ) : null}
+      {tab == "requests" ? (
+        <div className="overflow-auto flex-grow">
+          <div className="flex items-center justify-between mt-3 mb-2">
+            <h2 className="font-bold text-2xl">Message Requests</h2>
+          </div>
+          {requestTabLoading ? (
+            <ChatSkeletonLoader />
+          ) : error ? (
+            <div className="absolute right-[50%] bottom-[50%] translate-x-[50%]">
+              An error occured
+            </div>
+          ) : chatRequests && chatRequests.length > 0 ? (
+            chatRequests.map((chat) => (
               <Conversation
                 key={chat.chatId}
                 onClick={openChatWindow}
@@ -218,14 +286,10 @@ const Chats = ({
               />
             ))
           ) : (
-            <p className="mt-2">No chats found...</p>
+            <p className="mt-2">No requests found...</p>
           )}
         </div>
-      ) : (
-        <div className="overflow-auto flex-grow">
-          <FriendRequests />
-        </div>
-      )}
+      ) : null}
     </section>
   );
 };
@@ -233,11 +297,14 @@ const Chats = ({
 const mapDispatchToProps = (dispatch) => ({
   setActiveChat: (chat) => dispatch(setActiveChat(chat)),
   setUserChats: (chatList) => dispatch(setUserChats(chatList)),
+  setChatRequests: (chatRequestList) =>
+    dispatch(setChatRequests(chatRequestList)),
   clearActiveChat: () => dispatch(clearActiveChat()),
   clearMessages: () => dispatch(clearMessages()),
 });
-const mapStateToProps = (state) => ({
-  userChats: state.chat.userChats,
-  activeChat: state.chat.activeChat,
+const mapStateToProps = ({ chat }) => ({
+  userChats: chat.userChats,
+  chatRequests: chat.chatRequests,
+  activeChat: chat.activeChat,
 });
 export default connect(mapStateToProps, mapDispatchToProps)(Chats);
