@@ -256,7 +256,7 @@ const MobileChatWindow = ({
                     {Object.keys(groupedMessages).map((date, index) => (
                       <div
                         key={index}
-                        className="flex flex-col gap-5 overflow-hidden"
+                        className="flex flex-col gap-5"
                       >
                         <p className="text-center font-bold text-gray-500 my-4">
                           {date}
