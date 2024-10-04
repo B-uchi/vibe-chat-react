@@ -9,6 +9,7 @@ const Conversation = ({ data, onClick }) => {
     onlineStatus,
     chatId,
     participantId,
+    isFriend,
   } = data;
 
   function convertTimestampToTime(timestamp) {
@@ -52,7 +53,7 @@ const Conversation = ({ data, onClick }) => {
   return (
     <div
       onClick={() =>
-        onClick({ username, profilePhoto, onlineStatus, chatId, participantId })
+        onClick({ username, profilePhoto, onlineStatus, chatId, participantId, isFriend })
       }
       className="flex items-center cursor-pointer hover:bg-[#efefef] rounded-md"
     >
