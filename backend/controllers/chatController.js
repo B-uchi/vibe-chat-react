@@ -31,10 +31,12 @@ export const createChat = async (req, res) => {
     if (!chatExists) {
       const chatRef = await db.collection("chats").add({
         participants: [userId, otherUserId],
+        isFriend: false,
         lastMessage: null,
         lastMessageTimeStamp: null,
       });
-      return res.status(201).json({ chatId: chatRef.id });
+      const chatData = (await chatRef.get()).data()
+      return res.status(201).json({ chatId: chatRef.id, chatData });
     } else {
       return res
         .status(409)

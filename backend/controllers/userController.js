@@ -46,7 +46,6 @@ export const updateProfile = async (req, res) => {
 
     const userData = (await userRef.get()).data();
     return res.status(200).json({ userData });
-    
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -128,7 +127,8 @@ export const getUserChats = async (req, res) => {
   try {
     const userChatQuery = db
       .collection("chats")
-      .where("participants", "array-contains", req.uid);
+      .where("participants", "array-contains", req.uid)
+      .where("isFriend", "==", true);
     const querySnapshot = await userChatQuery.get();
     const chats = [];
 
@@ -161,5 +161,47 @@ export const getUserChats = async (req, res) => {
     return res.status(200).json({ chats });
   } catch (error) {
     return res.status(500).json({ message: "Error fetching chats" });
+  }
+};
+
+export const getChatRequests = async (req, res) => {
+  console.log("req recieved to getChatRequests");
+  try {
+    const chatRequestQuery = db
+      .collection("chats")
+      .where("participants", "array-contains", req.uid)
+      .where("isFriend", "==", false);
+    const querySnapshot = await chatRequestQuery.get();
+    const chatRequests = [];
+  
+    for (const doc of querySnapshot.docs) {
+      const chatData = doc.data();
+      const chatId = doc.id;
+      const otherParticipant = chatData.participants.filter(
+        (id) => id != req.uid
+      );
+      const participantsDataPromise = otherParticipant.map(
+        async (participantId) => {
+          const userDoc = await db.collection("users").doc(participantId).get();
+          return {
+            username: userDoc.data().profileData.username,
+            profilePhoto: userDoc.data().profileData.profilePhoto,
+            onlineStatus: userDoc.data().onlineStatus,
+            id: userDoc.data().id,
+          };
+        }
+      );
+      const participantsData = await Promise.all(participantsDataPromise);
+
+      chatRequests.push({
+        ...chatData,
+        chatId,
+        participantsData: { ...participantsData[0] },
+      });
+    }
+
+    return res.status(200).json({ chatRequests });
+  } catch (error) {
+    return res.status(500).json({ message: "Error fetching chats requests" });
   }
 };
