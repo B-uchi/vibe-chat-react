@@ -59,7 +59,7 @@ const AuthChecker = ({ children }) => {
   const fetchUserData = async (user) => {
     try {
       const idToken = await user.getIdToken(true);
-      const response = await fetch("https://vibe-chat-react.onrender.com/api/user/getUser", {
+      const response = await fetch("http://localhost:5000/api/user/getUser", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

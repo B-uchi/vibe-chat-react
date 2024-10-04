@@ -68,7 +68,7 @@ const Settings = ({ currentUser, updateCurrentUser }) => {
     }
 
     const response = await fetch(
-      "https://vibe-chat-react.onrender.com/api/user/updateProfile",
+      "http://localhost:5000/api/user/updateProfile",
       {
         method: "PATCH",
         body: JSON.stringify({

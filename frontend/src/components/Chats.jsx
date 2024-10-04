@@ -42,7 +42,7 @@ const Chats = ({
       try {
         const idToken = await user.getIdToken(true);
         const response = await fetch(
-          "https://vibe-chat-react.onrender.com/api/user/getChats",
+          "http://localhost:5000/api/user/getChats",
           {
             method: "GET",
             headers: {
@@ -72,7 +72,7 @@ const Chats = ({
       try {
         const idToken = await user.getIdToken(true);
         const response = await fetch(
-          "https://vibe-chat-react.onrender.com/api/user/getRequests",
+          "http://localhost:5000/api/user/getRequests",
           {
             method: "GET",
             headers: {
