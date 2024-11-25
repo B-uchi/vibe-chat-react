@@ -76,7 +76,7 @@ const Dashboard = ({ currentUser }) => {
   };
 
   return (
-    <div className="flex-1 flex bg-[#efefef] relative overflow-y-hidden">
+    <div className="flex-1 flex bg-[#efefef] h-full relative overflow-y-hidden">
       <Toaster richColors position="top-right" />
       <div className="bg-[#ffffff] lg:w-[30%] relative w-full md:w-[50%] border-r-[1px] border-r-[#d3d2d2]">
         <Chats chatCreated={chatCreated} />
