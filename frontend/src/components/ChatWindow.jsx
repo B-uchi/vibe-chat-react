@@ -53,7 +53,7 @@ const ChatWindow = ({
     setdecisionBtnLoader(true);
     const idToken = await user.getIdToken(true);
     const response = await fetch(
-      "http://localhost:5000/api/chat/decideRequest",
+      `${import.meta.env.VITE_API_URL}/api/chat/decideRequest`,
       {
         method: "PATCH",
         body: JSON.stringify({
@@ -97,7 +97,7 @@ const ChatWindow = ({
       if (activeChat) {
         const idToken = await user.getIdToken(true);
         const response = await fetch(
-          "http://localhost:5000/api/chat/fetchMessages",
+          `${import.meta.env.VITE_API_URL}/api/chat/fetchMessages`,
           {
             method: "POST",
             body: JSON.stringify({ chatId: activeChat.chatId }),
@@ -163,7 +163,7 @@ const ChatWindow = ({
       return toast.error("Message can't be empty");
     }
     const idToken = await user.getIdToken(true);
-    const response = await fetch("http://localhost:5000/api/chat/sendMessage", {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chat/sendMessage`, {
       method: "POST",
       body: JSON.stringify({
         messageBody,

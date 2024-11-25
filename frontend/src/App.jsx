@@ -52,7 +52,7 @@ const AuthChecker = ({ children }) => {
   const fetchUserData = async (user) => {
     try {
       const idToken = await user.getIdToken(true);
-      const response = await fetch("http://localhost:5000/api/user/getUser", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/user/getUser`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
