@@ -37,13 +37,6 @@ const AuthChecker = ({ children }) => {
         return;
       }
   
-      const storedUser = sessionStorage.getItem("currentUser");
-      if (storedUser) {
-        dispatch(setCurrentUser(JSON.parse(storedUser)));
-        setLoading(false);
-        return;
-      }
-  
       await fetchUserData(user);
     });
   
@@ -73,7 +66,6 @@ const AuthChecker = ({ children }) => {
   
       const data = await response.json();
       dispatch(setCurrentUser(data.userData));
-      sessionStorage.setItem("currentUser", JSON.stringify(data.userData));
       setLoading(false);
     } catch (error) {
       setLoading(false);
@@ -120,13 +112,13 @@ function App() {
 
   return (
     <AuthChecker>
-      <div className="flex flex-col h-screen w-screen">
-        {!hideNavbar && (
-          <div className="sticky top-0 z-30">
+      <div className="flex flex-col min-h-screen h-screen w-full overflow-x-hidden">
+        {/* {!hideNavbar && (
+          <header className="sticky top-0 z-30 w-full">
             <Navbar />
-          </div>
-        )}
-        <div className="flex-1 overflow-x-hidden">
+          </header>
+        )} */}
+        <main className="flex-1 relative">
           <Routes>
             <Route path="/sign-in" element={<SignIn />} />
             <Route path="/" element={<Dashboard />} />
@@ -137,7 +129,7 @@ function App() {
               <Route path="/chat/:chatId" element={<MobileChatWindow />} />
             )}
           </Routes>
-        </div>
+        </main>
       </div>
     </AuthChecker>
   );
