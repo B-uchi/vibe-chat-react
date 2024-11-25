@@ -3,6 +3,7 @@ import {
   clearActiveChat,
   clearMessages,
   setMessages,
+  reRenderChats,
 } from "../redux/chatReducer/chatAction";
 import { IoMdArrowBack } from "react-icons/io";
 import { useEffect, useRef, useState } from "react";
@@ -14,7 +15,6 @@ import { db } from "../lib/firebaseConfig";
 import { FaArrowDown } from "react-icons/fa6";
 import { Navigate } from "react-router-dom";
 import { MdCall } from "react-icons/md";
-import { MdDelete } from "react-icons/md";
 
 const MobileChatWindow = ({
   activeChat,
@@ -22,56 +22,45 @@ const MobileChatWindow = ({
   messages,
   setMessages,
   clearMessages,
+  currentUser,
+  reRenderChats,
 }) => {
   const [fetchingMsgs, setFetchingMsgs] = useState(true);
   const [messageBody, setMessageBody] = useState("");
-  const [showMessageOptions, setShowMessageOptions] = useState(false);
-  const [selectedMessageId, setSelectedMessageId] = useState("");
+  const [decisionBtnLoader, setDecisionBtnLoader] = useState(false);
   const user = useAuth().user;
   const messagesEndRef = useRef(null);
   let groupedMessages;
-
-
-
-  const showOptions = (id) => {
-    setSelectedMessageId((prevId) => {
-      // If the same message is clicked again, close the options
-      if (prevId === id) {
-        setShowMessageOptions(false);
-        return null; // Deselect the message
-      } else {
-        setShowMessageOptions(true);
-        return id; // Select the new message
-      }
-    });
-  };
 
   useEffect(() => {
     const fetchMessages = async () => {
       setFetchingMsgs(true);
       if (activeChat) {
-        const idToken = await user.getIdToken(true);
-        const response = await fetch(
-          "http://localhost:5000/api/chat/fetchMessages",
-          {
-            method: "POST",
-            body: JSON.stringify({ chatId: activeChat.chatId }),
-            headers: {
-              "Content-type": "application/json",
-              Authorization: `Bearer ${idToken}`,
-            },
+        try {
+          const idToken = await user.getIdToken(true);
+          const response = await fetch(
+            "http://localhost:5000/api/chat/fetchMessages",
+            {
+              method: "POST",
+              body: JSON.stringify({ chatId: activeChat.chatId }),
+              headers: {
+                "Content-type": "application/json",
+                Authorization: `Bearer ${idToken}`,
+              },
+            }
+          );
+          if (response.ok) {
+            const data = await response.json();
+            setMessages(data.messages);
+            scrollToBottom();
+          } else {
+            toast.error("Error fetching messages");
           }
-        );
-        if (response.status == 200) {
-          const data = await response.json();
-          setMessages(data.messages);
-          setFetchingMsgs(false);
-          scrollToBottom();
-        } else if (response.status == null) {
-          console.log(response.statusText);
-          setFetchingMsgs(false);
+        } catch (error) {
+          console.error("Error fetching messages:", error);
           toast.error("Error fetching messages");
-          console.log("Error fetching messages");
+        } finally {
+          setFetchingMsgs(false);
         }
       }
     };
@@ -94,24 +83,21 @@ const MobileChatWindow = ({
             const newMessage = doc
               .docChanges()
               .find((change) => change.type === "added");
-            setMessages([
-              ...messages,
-              { id: newMessage.doc.id, ...newMessage.doc.data() },
-            ]);
+            if (newMessage) {
+              setMessages([
+                ...messages,
+                { id: newMessage.doc.id, ...newMessage.doc.data() },
+              ]);
+            }
           }
         }
       );
-      return () => {
-        unsubscribe();
-      };
+      return () => unsubscribe();
     }
-  }, [messages]);
+  }, [messages, activeChat]);
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      scrollToBottom();
-    }, 0);
-
+    const timeout = setTimeout(scrollToBottom, 0);
     return () => clearTimeout(timeout);
   }, [messages]);
 
@@ -119,66 +105,80 @@ const MobileChatWindow = ({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!messageBody) {
-      console.log(true);
-      return toast.error("Message can't be empty");
-    }
-    const idToken = await user.getIdToken(true);
-    const response = await fetch("http://localhost:5000/api/chat/sendMessage", {
-      method: "POST",
-      body: JSON.stringify({
-        messageBody,
-        chatId: activeChat.chatId,
-      }),
-      headers: {
-        "Content-type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-    });
-    if (response.status == 201) {
-      setMessageBody("");
-    } else {
-      toast.error("Error sending message.");
+  const handleRequestDecision = async (decision) => {
+    setDecisionBtnLoader(true);
+    try {
+      const idToken = await user.getIdToken(true);
+      const response = await fetch(
+        `http://localhost:5000/api/chat/${decision}Request`,
+        {
+          method: "POST",
+          body: JSON.stringify({ chatId: activeChat.chatId }),
+          headers: {
+            "Content-type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
+      if (response.ok) {
+        reRenderChats();
+        toast.success(
+          `Chat request ${decision === "accept" ? "accepted" : "declined"}`
+        );
+      } else {
+        toast.error("Error processing request");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error processing request");
+    } finally {
+      setDecisionBtnLoader(false);
     }
   };
 
-  function convertTimestampToTime(timestamp) {
-    let seconds, nanoseconds;
-    if (timestamp.seconds && timestamp.nanoseconds) {
-      seconds = timestamp.seconds;
-      nanoseconds = timestamp.nanoseconds;
+  const sendMessage = async (e) => {
+    e.preventDefault();
+    if (!messageBody.trim()) {
+      return toast.error("Message can't be empty");
     }
-    seconds = timestamp.seconds || timestamp._seconds;
-    nanoseconds = timestamp.nanoseconds || timestamp._nanoseconds;
+    try {
+      const idToken = await user.getIdToken(true);
+      const response = await fetch("http://localhost:5000/api/chat/sendMessage", {
+        method: "POST",
+        body: JSON.stringify({
+          messageBody: messageBody.trim(),
+          chatId: activeChat.chatId,
+        }),
+        headers: {
+          "Content-type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
+      if (response.ok) {
+        setMessageBody("");
+      } else {
+        toast.error("Error sending message");
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast.error("Error sending message");
+    }
+  };
 
+  const convertTimestampToTime = (timestamp) => {
+    const seconds = timestamp.seconds || timestamp._seconds;
+    const nanoseconds = timestamp.nanoseconds || timestamp._nanoseconds;
     const date = new Date(seconds * 1000 + nanoseconds / 1000000);
-
-    if (date.getHours() < 12) {
-      return date.toLocaleTimeString("en-US", {
-        hour12: true,
-        hour: "numeric",
-        minute: "numeric",
-      });
-    } else {
-      return date.toLocaleTimeString("en-US", {
-        hour12: true,
-        hour: "numeric",
-        minute: "numeric",
-      });
-    }
-  }
+    return date.toLocaleTimeString("en-US", {
+      hour12: true,
+      hour: "numeric",
+      minute: "numeric",
+    });
+  };
 
   if (messages) {
     groupedMessages = messages.reduce((acc, message) => {
-      let seconds;
-      if (message.timeStamp.seconds) {
-        seconds = message.timeStamp.seconds;
-      } else {
-        seconds = message.timeStamp._seconds;
-      }
-
+      const seconds = message.timeStamp.seconds || message.timeStamp._seconds;
       const messageDate = new Date(seconds * 1000).toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
@@ -188,177 +188,203 @@ const MobileChatWindow = ({
       if (!acc[messageDate]) {
         acc[messageDate] = [];
       }
-
       acc[messageDate].push(message);
-
       return acc;
     }, {});
   }
 
+  if (!activeChat) return <Navigate to="/" />;
+
   return (
-    <section className="h-full flex flex-col relative">
+    <section className="h-full flex flex-col relative bg-gray-50">
       <Toaster position="top-right" richColors />
-      {!activeChat ? (
-        <Navigate to={"/"} />
-      ) : (
-        <div className="flex flex-col relative h-screen overflow-hidden">
-          <div className="bg-white p-1 h-[8vh] shrink-0 border-b-[#e1e1e1] border-b-[1px] flex items-center font-poppins">
-            <div className="w-full p-1 h-[8vh] border-b-[#e1e1e1] border-b-[1px] flex justify-between items-center font-poppins">
-              <div className="flex">
-                <button
-                  onClick={() => {
-                    clearActiveChat();
-                    clearMessages();
-                  }}
-                  className="mr-2"
-                >
-                  <IoMdArrowBack size={25} />
-                </button>
-                <div className="flex gap-2 ">
-                  <img
-                    src={activeChat.profilePhoto}
-                    alt=""
-                    className="rounded-full h-[40px] w-[40px]"
-                  />
-                  <div className="flex flex-col justify-center">
-                    <p className="font-bold">
-                      {activeChat && activeChat.username}
-                    </p>
-                    <small>
-                      {activeChat.onlineStatus ? "Online" : "Offline"}
-                    </small>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-7 mr-5">
-                <button
-                  className="hover:bg-[#efefef] p-2 rounded-full"
-                  title="Call"
-                >
-                  <MdCall color="#313131" size={23} />
-                </button>
-                <button
-                  className="hover:bg-[#efefef] p-2 rounded-full"
-                  title="More options"
-                >
-                  <IoEllipsisVertical color="#313131" size={23} />
-                </button>
+      <div className="flex flex-col h-screen">
+        <div className="bg-white px-4 py-2 h-16 shrink-0 border-b flex items-center justify-between shadow-sm">
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => {
+                clearActiveChat();
+                clearMessages();
+              }}
+              className="p-2 hover:bg-gray-100 rounded-full transition"
+            >
+              <IoMdArrowBack size={20} />
+            </button>
+            <div className="flex items-center space-x-3">
+              <img
+                src={activeChat.profilePhoto}
+                alt=""
+                className="w-10 h-10 rounded-full object-cover"
+              />
+              <div>
+                <p className="font-semibold text-gray-900">
+                  {activeChat.username}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {activeChat.onlineStatus ? "Online" : "Offline"}
+                </p>
               </div>
             </div>
           </div>
-          <div className="h-[92vh] max-h-[92vh] p-2 relative flex flex-col overflow-hidden">
-            {fetchingMsgs ? (
-              <div className="loader-black absolute right-[50%] bottom-[50%] translate-x-[50%]"></div>
-            ) : (
-              <>
-                {messages && messages.length > 0 ? (
-                  <div className="overflow-y-auto h-[83vh] px-3 py-2">
-                    {Object.keys(groupedMessages).map((date, index) => (
-                      <div
-                        key={index}
-                        className="flex flex-col gap-5"
+          <div className="flex items-center space-x-2">
+            <button
+              className="p-2 hover:bg-gray-100 rounded-full transition"
+              title="Call"
+            >
+              <MdCall className="text-gray-600" size={20} />
+            </button>
+            <button
+              className="p-2 hover:bg-gray-100 rounded-full transition"
+              title="More options"
+            >
+              <IoEllipsisVertical className="text-gray-600" size={20} />
+            </button>
+          </div>
+        </div>
+
+        {!activeChat.isFriend && (
+          <div className="bg-blue-50 p-4 border-b">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                <span className="font-medium">
+                  {activeChat.initiatedBy === currentUser.id
+                    ? "You sent a chat request"
+                    : "Chat request received"}
+                </span>
+              </p>
+              {activeChat.initiatedBy !== currentUser.id && (
+                <div className="flex items-center space-x-2">
+                  {decisionBtnLoader ? (
+                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleRequestDecision("accept")}
+                        className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition"
                       >
-                        <p className="text-center font-bold text-gray-500 my-4">
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => handleRequestDecision("decline")}
+                        className="px-4 py-1.5 bg-gray-200 text-gray-800 text-sm rounded-md hover:bg-gray-300 transition"
+                      >
+                        Decline
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="flex-1 flex flex-col min-h-0">
+          {fetchingMsgs ? (
+            <div className="h-full flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto px-4 py-6">
+                {messages && messages.length > 0 ? (
+                  Object.entries(groupedMessages).map(([date, dayMessages]) => (
+                    <div key={date} className="space-y-6">
+                      <div className="flex justify-center">
+                        <span className="px-3 py-1 text-xs font-medium text-gray-500 bg-gray-100 rounded-full">
                           {date}
-                        </p>
-                        {groupedMessages[date].map((message) => (
-                          <div
-                            key={message.id}
-                            className={
-                              message.senderId !== activeChat.participantId
-                                ? "self-end max-w-[70%] relative w-fit"
-                                : "self-start max-w-[70%] relative w-fit"
-                            }
-                          >
-                            <div className="flex items-center relative">
-                              {showMessageOptions &&
-                                selectedMessageId === message.id && (
-                                  <button
-                                    className={`absolute ${
-                                      message.senderId ==
-                                      activeChat.participantId
-                                        ? " right-0 translate-x-[110%] "
-                                        : " left-0 -translate-x-[110%] "
-                                    } top-[50%] bg-red-500 hover:bg-red-400 text-white p-1 rounded`}
-                                  >
-                                    <MdDelete size={20}/>
-                                  </button>
-                                )}
-                              <div
-                                onClick={() => showOptions(message.id)}
-                                className={`shadow-sm ${
-                                  message.senderId !== activeChat.participantId
-                                    ? "bg-white"
-                                    : "bg-[#313131] text-white"
-                                } break-words max-w-full border-[1px] border-[#bdbdbd] rounded-lg p-4 cursor-pointer`}
-                              >
-                                {message.message}
-                              </div>
-                            </div>
-                            <small
-                              className={`absolute w-[80px] text-[10px] ${
-                                message.senderId !== activeChat.participantId
-                                  ? "right-3 text-right"
-                                  : "left-3 text-left"
+                        </span>
+                      </div>
+                      <div className="space-y-4">
+                        {dayMessages.map((message) => {
+                          const isSender =
+                            message.senderId !== activeChat.participantId;
+                          return (
+                            <div
+                              key={message.id}
+                              className={`flex ${
+                                isSender ? "justify-end" : "justify-start"
                               }`}
                             >
-                              {convertTimestampToTime(message.timeStamp)}
-                            </small>
-                          </div>
-                        ))}
+                              <div
+                                className={`max-w-[70%] break-words rounded-lg px-4 py-2 ${
+                                  isSender
+                                    ? "bg-blue-600 text-white"
+                                    : "bg-gray-100 text-gray-900"
+                                }`}
+                              >
+                                <p>{message.message}</p>
+                                <p
+                                  className={`text-xs mt-1 ${
+                                    isSender
+                                      ? "text-blue-100"
+                                      : "text-gray-500"
+                                  }`}
+                                >
+                                  {convertTimestampToTime(message.timeStamp)}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    ))}
-                    <div ref={messagesEndRef} />
-                  </div>
+                    </div>
+                  ))
                 ) : (
-                  <p className="flex h-full justify-center items-center">
-                    No messages found
-                  </p>
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-gray-500">No messages yet</p>
+                  </div>
                 )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              <div className="p-4 bg-white border-t mt-auto">
                 <form
-                  onSubmit={(e) => sendMessage(e)}
-                  className=" w-full bottom-0 absolute px-5 h-[9vh] flex justify-center items-center gap-3 md:gap-0"
+                  onSubmit={sendMessage}
+                  className="flex items-center space-x-2"
                 >
-                  <div className="rounded-full w-full md:w-[80%] lg:w-[80%] mx-auto border-[1px] border-[#bdbdbd] flex items-center">
+                  <div className="flex-1 relative">
                     <input
                       type="text"
                       value={messageBody}
                       onChange={(e) => setMessageBody(e.target.value)}
-                      placeholder="Enter a message...."
-                      className="p-3 pl-5 rounded-l-full bg-transparent w-[92%] outline-none"
+                      placeholder="Type a message..."
+                      className="w-full px-4 py-2 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    <button
-                      className="mx-auto flex-grow flex justify-center p-4 rounded-r-full hover:bg-[#e1e1e1]"
-                      type="submit"
-                      onClick={(e) => sendMessage(e)}
-                    >
-                      <IoSend />
-                    </button>
                   </div>
+                  <button
+                    type="submit"
+                    className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition"
+                  >
+                    <IoSend size={20} />
+                  </button>
                   <button
                     type="button"
                     onClick={scrollToBottom}
-                    className="lg:absolute right-1 lg:right-5 p-3 rounded-full bg-[#313131]"
+                    className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition"
                   >
-                    <FaArrowDown color="white" />
+                    <FaArrowDown size={16} className="text-gray-600" />
                   </button>
                 </form>
-              </>
-            )}
-          </div>
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
     </section>
   );
 };
 
-const mapStateToProps = ({ chat }) => ({
+const mapStateToProps = ({ chat, user }) => ({
   activeChat: chat.activeChat,
   messages: chat.messages,
+  currentUser: user.currentUser,
 });
+
 const mapDispatchToProps = (dispatch) => ({
   clearActiveChat: () => dispatch(clearActiveChat()),
   setMessages: (messages) => dispatch(setMessages(messages)),
   clearMessages: () => dispatch(clearMessages()),
+  reRenderChats: () => dispatch(reRenderChats()),
 });
+
 export default connect(mapStateToProps, mapDispatchToProps)(MobileChatWindow);
