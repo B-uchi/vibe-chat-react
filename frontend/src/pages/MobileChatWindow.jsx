@@ -28,6 +28,7 @@ const MobileChatWindow = ({
   const [fetchingMsgs, setFetchingMsgs] = useState(true);
   const [messageBody, setMessageBody] = useState("");
   const [decisionBtnLoader, setDecisionBtnLoader] = useState(false);
+  const [showRequest, setShowRequest] = useState(false);
   const user = useAuth().user;
   const messagesEndRef = useRef(null);
   let groupedMessages;
@@ -107,32 +108,31 @@ const MobileChatWindow = ({
 
   const handleRequestDecision = async (decision) => {
     setDecisionBtnLoader(true);
-    try {
-      const idToken = await user.getIdToken(true);
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/chat/${decision}Request`,
-        {
-          method: "POST",
-          body: JSON.stringify({ chatId: activeChat.chatId }),
-          headers: {
-            "Content-type": "application/json",
-            Authorization: `Bearer ${idToken}`,
-          },
-        }
-      );
-      if (response.ok) {
-        reRenderChats();
-        toast.success(
-          `Chat request ${decision === "accept" ? "accepted" : "declined"}`
-        );
-      } else {
-        toast.error("Error processing request");
+    const idToken = await user.getIdToken(true);
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/chat/decideRequest`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          chatId: activeChat.chatId,
+          decision,
+          participantId: activeChat.participantId,
+        }),
+        headers: {
+          "Content-type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
       }
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error("Error processing request");
-    } finally {
+    );
+    if (response.status == 200) {
+      setShowRequest(false);
+      clearActiveChat();
+      reRenderChats();
       setDecisionBtnLoader(false);
+      toast.success("Request decision successful");
+    } else {
+      setDecisionBtnLoader(false);
+      toast.error("Error with request decision");
     }
   };
 
@@ -242,7 +242,7 @@ const MobileChatWindow = ({
           </div>
         </div>
 
-        {!activeChat.isFriend && (
+        {showRequest && !activeChat.isFriend && (
           <div className="bg-blue-50 p-4 border-b">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600">

@@ -118,6 +118,22 @@ const Chats = ({
                 (userChat) => userChat.chatId === modifiedChatId
               );
             }
+            
+            let matchingRequestIndex = -1;
+            if (chatRequests) {
+              matchingRequestIndex = chatRequests.findIndex(
+                (chatRequest) => chatRequest.chatId === modifiedChatId
+              );
+            }
+
+            if (matchingRequestIndex !== -1) {
+              chatRequests[matchingRequestIndex] = {
+                ...chatRequests[matchingRequestIndex],
+                lastMessage: modifiedChatData.lastMessage,
+                lastMessageTimeStamp: modifiedChatData.lastMessageTimeStamp,
+              };
+              setChatRequests([...chatRequests]); // Trigger a re-render
+            }
 
             if (matchingChatIndex !== -1) {
               userChats[matchingChatIndex] = {

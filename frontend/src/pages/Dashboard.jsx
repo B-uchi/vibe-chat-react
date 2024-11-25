@@ -11,48 +11,70 @@ import { setActiveChat } from "../redux/chatReducer/chatAction";
 import { connect } from "react-redux";
 import AddUserLoader from "../components/AddUserLoader";
 
-const Dashboard = ({ currentUser }) => {
+const Dashboard = ({ currentUser, setActiveChat }) => {
   const [addPersonModal, setAddPersonModal] = useState(false);
   const [users, setUsers] = useState([]);
   const [chatCreated, setChatCreated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const user = useAuth().user;
 
   const fetchOtherUsers = async () => {
-    const idToken = await user.getIdToken(true);
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/user/getOtherUsers`,
-      {
-        method: "GET",
-        headers: {
-          "Content-type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
+    try {
+      setLoading(true);
+      const idToken = await user.getIdToken(true);
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/user/getOtherUsers`,
+        {
+          method: "GET",
+          headers: {
+            "Content-type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch users");
       }
-    );
-    if (response.status == 200) {
+
       const data = await response.json();
-      setLoading(false);
       setUsers(data.otherUsers);
-    } else {
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast.error("Failed to load users");
+    } finally {
       setLoading(false);
     }
   };
 
   const createChat = async (id, username, profilePhoto, onlineStatus) => {
-    const idToken = await user.getIdToken(true);
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chat/createChat`, {
-      method: "POST",
-      body: JSON.stringify({ otherUserId: id }),
-      headers: {
-        "Content-type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-    });
-    const data = await response.json();
-    if (response.status == 201) {
-      toast.success("Chat created");
-      setChatCreated(!chatCreated);
+    try {
+      const idToken = await user.getIdToken(true);
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/chat/createChat`,
+        {
+          method: "POST",
+          body: JSON.stringify({ otherUserId: id }),
+          headers: {
+            "Content-type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          toast.error("Chat already exists");
+          return;
+        }
+        throw new Error(data.message || "Failed to create chat");
+      }
+
+      toast.success("Chat created successfully");
+      setChatCreated(prev => !prev);
       setActiveChat({
         username,
         profilePhoto,
@@ -63,44 +85,45 @@ const Dashboard = ({ currentUser }) => {
         initiatedBy: data.chatData.initiatedBy,
       });
       setAddPersonModal(false);
-    } else {
-      if (response.status == 409) {
-        return toast("Chat already exists");
-      }
-      if (response.status == 400) {
-        return toast(data.message);
-      }
-      toast.error("Error creating chat");
-      console.log("Error creating chat");
+    } catch (error) {
+      console.error("Error creating chat:", error);
+      toast.error(error.message || "Failed to create chat");
     }
   };
 
   const unblockUser = async (userId) => {
-    toast.loading("Unblocking user...");
+    const toastId = toast.loading("Unblocking user...");
     try {
       const idToken = await user.getIdToken(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/user/unblockUser`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ userToUnblockId: userId }),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/user/unblockUser`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ userToUnblockId: userId }),
+        }
+      );
 
-      if (response.ok) {
-        toast.dismiss();
-        toast.success("User unblocked successfully");
-        fetchOtherUsers(); 
-      } else {
-        toast.dismiss();
-        toast.error("Failed to unblock user");
+      if (!response.ok) {
+        throw new Error("Failed to unblock user");
       }
+
+      toast.dismiss(toastId);
+      toast.success("User unblocked successfully");
+      await fetchOtherUsers();
     } catch (error) {
       console.error("Error unblocking user:", error);
-      toast.error("Failed to unblock user");
+      toast.dismiss(toastId);
+      toast.error(error.message || "Failed to unblock user");
     }
   };
+
+  const filteredUsers = users.filter(user => 
+    user.username.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="flex-1 flex bg-[#efefef] h-full relative overflow-y-hidden">
@@ -127,7 +150,6 @@ const Dashboard = ({ currentUser }) => {
       {addPersonModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex justify-center items-center p-4">
           <div className="bg-white rounded-xl shadow-2xl lg:w-1/3 min-w-[320px] max-h-[80vh] overflow-hidden">
-            {/* Header */}
             <div className="p-4 border-b border-gray-200">
               <div className="flex items-center gap-4">
                 <button
@@ -138,13 +160,17 @@ const Dashboard = ({ currentUser }) => {
                 </button>
                 <h1 className="text-xl font-semibold">Start a Chat</h1>
               </div>
-              
-              {/* Search Bar */}
+
               <div className="mt-4">
                 <div className="relative">
-                  <IoSearch size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <IoSearch
+                    size={20}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  />
                   <input
                     type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search users"
                     className="w-full pl-10 pr-4 py-2 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                   />
@@ -152,16 +178,19 @@ const Dashboard = ({ currentUser }) => {
               </div>
             </div>
 
-            {/* User List */}
             <div className="overflow-y-auto max-h-[calc(80vh-140px)] p-4">
               {loading ? (
                 <AddUserLoader />
-              ) : users && users.length > 0 ? (
-                users.map((user) => (
+              ) : filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
                   <div
                     key={user.id}
                     onClick={() => {
-                      if (!currentUser.blocked.includes(user.id)) {
+                      const canCreateChat = !user.connections[currentUser.id] || 
+                        (user.connections[currentUser.id] !== "friends" && 
+                         user.connections[currentUser.id] !== "blocked");
+                      
+                      if (canCreateChat) {
                         createChat(
                           user.id,
                           user.username,
@@ -170,13 +199,15 @@ const Dashboard = ({ currentUser }) => {
                         );
                       }
                     }}
-                    className="group flex items-center justify-between p-3 mb-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                    className={`group flex items-center justify-between p-3 mb-2 rounded-lg hover:bg-gray-50 transition-colors ${
+                      user.connections[currentUser.id] === "friends" ? "cursor-not-allowed" : "cursor-pointer"
+                    }`}
                   >
                     <div className="flex items-center gap-4 flex-1">
                       <div className="relative">
                         <img
                           src={user.profilePhoto}
-                          alt=""
+                          alt={user.username}
                           className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
                         />
                         {user.onlineStatus && (
@@ -192,9 +223,9 @@ const Dashboard = ({ currentUser }) => {
                         </p>
                       </div>
                     </div>
-                    
-                    {currentUser.blocked.includes(user.id) && (
-                      <button 
+
+                    {!currentUser.blockedBy.includes(user.id) && currentUser.connections[user.id] === "blocked" && (
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
                           unblockUser(user.id);
@@ -204,7 +235,7 @@ const Dashboard = ({ currentUser }) => {
                         Unblock
                       </button>
                     )}
-                    {user.blocked.includes(currentUser.id) && (
+                    {currentUser.blockedBy.includes(user.id) && (
                       <span className="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 rounded-full">
                         Blocked
                       </span>
@@ -226,7 +257,7 @@ const Dashboard = ({ currentUser }) => {
 };
 
 const mapDispatchToProps = (dispatch) => ({
-  setActiveChat: () => dispatch(setActiveChat()),
+  setActiveChat: (chatData) => dispatch(setActiveChat(chatData)),
 });
 
 const mapStateToProps = ({ user }) => ({
