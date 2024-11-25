@@ -177,7 +177,6 @@ export const getUserChats = async (req, res) => {
       .where("participants", "array-contains", req.uid)
     
     const querySnapshot = await userChatQuery.get();
-    console.log(querySnapshot.docs);
     const chats = [];
 
     // Get user's connections
@@ -189,10 +188,12 @@ export const getUserChats = async (req, res) => {
       const chatData = doc.data();
       const otherParticipantId = chatData.participants.find(id => id !== req.uid);
 
-      // Only include chats with friends
-      if (userConnections[otherParticipantId] !== "friends") {
+      // Only include chats with friends or chats initiated by current user
+      if (userConnections[otherParticipantId] !== "friends" && chatData.initiatedBy !== req.uid) {
         continue;
       }
+
+      console.log("Do i get here?");
 
       // Get other participant's data
       const participantDoc = await db.collection("users").doc(otherParticipantId).get();

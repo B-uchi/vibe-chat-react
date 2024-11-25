@@ -30,6 +30,7 @@ const CompleteSignup = () => {
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
           if (userDoc.data()?.profileData?.username) {
+            console.log("User already has a username");
             setLoading(false);
             navigate("/");
           } else {
