@@ -75,6 +75,33 @@ const Dashboard = ({ currentUser }) => {
     }
   };
 
+  const unblockUser = async (userId) => {
+    toast.loading("Unblocking user...");
+    try {
+      const idToken = await user.getIdToken(true);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/user/unblockUser`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ userToUnblockId: userId }),
+      });
+
+      if (response.ok) {
+        toast.dismiss();
+        toast.success("User unblocked successfully");
+        fetchOtherUsers(); 
+      } else {
+        toast.dismiss();
+        toast.error("Failed to unblock user");
+      }
+    } catch (error) {
+      console.error("Error unblocking user:", error);
+      toast.error("Failed to unblock user");
+    }
+  };
+
   return (
     <div className="flex-1 flex bg-[#efefef] h-full relative overflow-y-hidden">
       <Toaster richColors position="top-right" />
@@ -134,12 +161,14 @@ const Dashboard = ({ currentUser }) => {
                   <div
                     key={user.id}
                     onClick={() => {
-                      createChat(
-                        user.id,
-                        user.username,
-                        user.profilePhoto,
-                        user.onlineStatus
-                      );
+                      if (!currentUser.blocked.includes(user.id)) {
+                        createChat(
+                          user.id,
+                          user.username,
+                          user.profilePhoto,
+                          user.onlineStatus
+                        );
+                      }
                     }}
                     className="group flex items-center justify-between p-3 mb-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
                   >
@@ -165,7 +194,13 @@ const Dashboard = ({ currentUser }) => {
                     </div>
                     
                     {currentUser.blocked.includes(user.id) && (
-                      <button className="px-4 py-1 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          unblockUser(user.id);
+                        }}
+                        className="px-4 py-1 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+                      >
                         Unblock
                       </button>
                     )}
