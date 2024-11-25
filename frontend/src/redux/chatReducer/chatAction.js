@@ -25,3 +25,8 @@ export const setMessages = (messages) => ({
 export const clearActiveChat = () => ({
   type: "CLEAR_ACTIVE_CHAT",
 });
+
+export const reRenderChats = () => ({
+  type: "RERENDER_CHATS",
+});
+

@@ -3,6 +3,7 @@ const INITIAL_USER_STATE = {
   messages: null,
   userChats: null,
   chatRequests: null,
+  rerender: false,
 };
 
 const chatReducer = (state = INITIAL_USER_STATE, action) => {
@@ -36,6 +37,11 @@ const chatReducer = (state = INITIAL_USER_STATE, action) => {
       return {
         ...state,
         activeChat: null,
+      };
+    case "RERENDER_CHATS":
+      return {
+        ...state,
+        rerender: !state.rerender,
       };
     default:
       return state;
