@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { MdOutlineSecurity } from "react-icons/md";
+import { MdOutlineSecurity, MdPhotoCamera } from "react-icons/md";
 import { IoPerson } from "react-icons/io5";
-import { CiCamera } from "react-icons/ci";
 import { connect } from "react-redux";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { storage } from "../lib/firebaseConfig";
@@ -13,247 +12,233 @@ import { RiGitRepositoryPrivateFill } from "react-icons/ri";
 const Settings = ({ currentUser, updateCurrentUser }) => {
   const user = useAuth().user;
   const [page, setPage] = useState("profile");
-  const [username, setUsername] = useState("");
-  const [bio, setBio] = useState("");
+  const [formData, setFormData] = useState({
+    username: "",
+    bio: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
   const fileInputRef = useRef(null);
-  const [charactersLeftBio, setCharactersLeftBio] = useState(100);
-  const [charactersLeftUname, setCharactersLeftUname] = useState(20);
   const [activeButton, setActiveBtn] = useState("profile");
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(null);
   const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const validateImage = (event) => {
-    const image = event.target.files[0];
-    if (image && image.size <= 3 * 1024 * 1024) {
-      if (!image.type.startsWith("image/")) {
-        alert("Please select a valid image file (3MB or less).");
-        fileInputRef.current.value = "";
-      } else {
-        setProfilePhotoUrl(URL.createObjectURL(image));
-        setProfilePhoto(image);
-      }
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    const maxLength = name === 'bio' ? 100 : 20;
+    
+    if (value.length <= maxLength) {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
     }
   };
 
-  const selectImage = () => {
-    fileInputRef.current.click();
-  };
+  const validateImage = (event) => {
+    const image = event.target.files[0];
+    const maxSize = 3 * 1024 * 1024; // 3MB
 
-  const handleBtnClick = (page) => {
-    setPage(page);
-    setActiveBtn(page);
-  };
+    if (!image) return;
 
-  const updateProfile = async () => {
-    setLoading(true);
-    const idToken = await user.getIdToken(true);
-
-    if (!username && !profilePhoto && !bio) {
-      toast("At least one field is required");
-      setLoading(false);
+    if (image.size > maxSize) {
+      toast.error("Image must be 3MB or less");
       return;
     }
 
-    if (profilePhoto) {
-      const storageRef = ref(
-        storage,
-        `kyc/${currentUser.id}.${profilePhoto.type.split("/")[1]}`
-      );
-      await uploadBytes(storageRef, profilePhoto).then(async (snapshot) => {
-        const imgUrl = await getDownloadURL(storageRef);
-        setUploadedPhotoUrl(imgUrl);
-      });
+    if (!image.type.startsWith("image/")) {
+      toast.error("Please select a valid image file");
+      return;
     }
 
-    const response = await fetch(
-      "http://localhost:5000/api/user/updateProfile",
-      {
+    setProfilePhotoUrl(URL.createObjectURL(image));
+    setProfilePhoto(image);
+  };
+
+  const updateProfile = async () => {
+    try {
+      setLoading(true);
+      const idToken = await user.getIdToken(true);
+
+      if (!formData.username && !profilePhoto && !formData.bio) {
+        toast.error("At least one field is required");
+        return;
+      }
+
+      let photoUrl = uploadedPhotoUrl;
+      if (profilePhoto) {
+        const fileExt = profilePhoto.type.split("/")[1];
+        const storageRef = ref(storage, `kyc/${currentUser.id}.${fileExt}`);
+        await uploadBytes(storageRef, profilePhoto);
+        photoUrl = await getDownloadURL(storageRef);
+      }
+
+      const response = await fetch("http://localhost:5000/api/user/updateProfile", {
         method: "PATCH",
-        body: JSON.stringify({
-          username,
-          bio,
-          profilePhotoUrl: uploadedPhotoUrl,
-        }),
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${idToken}`,
         },
-      }
-    );
+        body: JSON.stringify({
+          username: formData.username,
+          bio: formData.bio,
+          profilePhotoUrl: photoUrl,
+        }),
+      });
 
-    const data = await response.json();
-    if (response.status == 200) {
-      toast.success("Changes saved successfully");
-      console.log(data.userData);
-      updateCurrentUser(data.userData);
-      setUsername("");
-      setBio("");
-      setLoading(false);
-    } else if (response.status == 409) {
-      toast.error(data.message);
-      setLoading(false);
-    } else {
-      toast.error("An error occured when updating profile");
-      console.log(data.message);
+      const data = await response.json();
+
+      if (response.status === 200) {
+        toast.success("Profile updated successfully");
+        updateCurrentUser(data.userData);
+        setFormData(prev => ({...prev, username: "", bio: ""}));
+      } else {
+        toast.error(data.message || "Failed to update profile");
+      }
+    } catch (error) {
+      toast.error("An error occurred");
+      console.error(error);
+    } finally {
       setLoading(false);
     }
   };
 
-  // implement offline feature
-  // implement typing, delivered and seen notification,
-  // implement message queue
+  const menuItems = [
+    { id: "profile", icon: IoPerson, label: "Profile Settings" },
+    { id: "security", icon: MdOutlineSecurity, label: "Security" },
+    { id: "privacy", icon: RiGitRepositoryPrivateFill, label: "Privacy" }
+  ];
 
   return (
-    <div className="bg-[#efefef] h-full flex justify-center items-center lg:p-0 p-2">
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <Toaster richColors position="top-right" />
-      <div className="border-[1px] border-[#e1e1e1] lg:w-1/2 rounded-md p-3 bg-white h-[80%] flex">
-        <div className="p-3 border-r-[1px] border-[#e1e1e1] lg:w-[30%] h-full flex flex-col items-start gap-2">
-          <h1 className="text-2xl hidden lg:block font-bold font-poppins">
-            Settings
-          </h1>
-          <button
-            onClick={() => handleBtnClick("profile")}
-            className={`flex p-3 items-center gap-3 hover:bg-[#efefef] w-full rounded-md ${
-              activeButton == "profile" ? " bg-[#efefef] " : ""
-            }`}
-          >
-            <IoPerson size={22} />{" "}
-            <span className="lg:block hidden">Profile Settings</span>
-          </button>
-          <button
-            onClick={() => handleBtnClick("security")}
-            className={`flex p-3 items-center gap-3 hover:bg-[#efefef] w-full rounded-md ${
-              activeButton == "security" ? " bg-[#efefef] " : ""
-            }`}
-          >
-            <MdOutlineSecurity size={22} />{" "}
-            <span className="lg:block hidden">Security</span>{" "}
-          </button>
-          <button
-            className={`flex p-3 items-center gap-3 hover:bg-[#efefef] w-full rounded-md ${
-              activeButton == "privacy" ? " bg-[#efefef] " : ""
-            }`}
-          >
-            <RiGitRepositoryPrivateFill size={22} />{" "}
-            <span className="lg:block hidden">Privacy</span>{" "}
-          </button>
-        </div>
-        <div className="h-full flex-grow p-3 overflow-scroll">
-          {page === "profile" && (
-            <div className="flex flex-col gap-3">
-              <h1 className="text-2xl font-bold font-poppins">
-                Profile Settings
-              </h1>
-              <div className="">
-                {currentUser && currentUser.profileData.profilePhoto ? (
-                  <div
-                    style={{
-                      backgroundImage: `url(${
-                        profilePhotoUrl
-                          ? profilePhotoUrl
-                          : currentUser.profileData.profilePhoto
-                      })`,
-                    }}
-                    className="mx-auto bg-cover bg-no-repeat bg-center rounded-full w-[120px] h-[120px] border-[1px] border-[#e1e1e1] bg-[#efefef] flex items-center justify-center cursor-pointer"
-                  >
-                    <button
-                      onClick={() => selectImage()}
-                      className="bg-white bg-opacity-50 rounded-full p-2"
-                    >
-                      <CiCamera size={30} />{" "}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        ref={fileInputRef}
-                        onChange={validateImage}
-                        className="hidden"
-                      />
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    onClick={() => selectImage()}
-                    className="mx-auto bg-[#efefef] w-[120px] h-[120px] rounded-full flex items-center justify-center cursor-pointer"
-                  >
-                    <CiCamera size={30} />
-                  </div>
-                )}
-              </div>
-              <div>
-                <label>Username</label>
-                <input
-                  type="text"
-                  placeholder={currentUser && currentUser.profileData.username}
-                  value={username}
-                  onChange={(e) => {
-                    if (e.target.value.length <= 20) {
-                      setUsername(e.target.value);
-                      setCharactersLeftUname(100 - e.target.value.length);
-                    }
-                  }}
-                  className="w-full p-2 border-[1px] border-[#e1e1e1] rounded-md"
-                />
-              </div>
-              <div className="">
-                <div>
-                  <label>Bio</label>
-                  <textarea
-                    placeholder={currentUser && currentUser.profileData.bio}
-                    rows={3}
-                    value={bio}
-                    onChange={(e) => {
-                      if (e.target.value.length <= 100) {
-                        setBio(e.target.value);
-                        setCharactersLeftBio(100 - e.target.value.length);
-                      }
-                    }}
-                    className="w-full p-2 border-[1px] border-[#e1e1e1] resize-none rounded-md"
-                  />
-                </div>
-                <small>Characters Left: {charactersLeftBio}/100</small>
-              </div>
-              <button
-                onClick={() => updateProfile()}
-                className="bg-[#333] text-white p-2 rounded-md flex items-center justify-center gap-3"
-              >
-                Save {loading && <div className="loader"></div>}
-              </button>
-            </div>
-          )}
-          {page === "security" && (
-            <div className="flex flex-col gap-3">
-              <h1 className="text-2xl font-bold font-poppins">
-                Security Settings
-              </h1>
-              <div>
-                <label>Current Password</label>
-                <input
-                  type="password"
-                  className="w-full p-2 border-[1px] border-[#e1e1e1] rounded-md"
-                />
-              </div>
-              <div>
-                <label>New Password</label>
-                <input
-                  type="password"
-                  className="w-full p-2 border-[1px] border-[#e1e1e1] rounded-md"
-                />
-              </div>
-              <div>
-                <label>Confirm New Password</label>
-                <input
-                  type="password"
-                  className="w-full p-2 border-[1px] border-[#e1e1e1] rounded-md"
-                />
-              </div>
+      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="flex flex-col md:flex-row h-full">
+          {/* Sidebar */}
+          <div className="md:w-64 bg-gray-50 p-6 border-r border-gray-200">
+            <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
+            <nav className="space-y-2">
+              {menuItems.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => setPage(item.id)}
+                  className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                    page === item.id 
+                    ? "bg-blue-50 text-blue-700" 
+                    : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <item.icon className="h-5 w-5 mr-3" />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
 
-              <button className="bg-[#333] text-white p-2 rounded-md">
-                Save
-              </button>
-            </div>
-          )}
+          {/* Main Content */}
+          <div className="flex-1 p-6">
+            {page === "profile" && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-gray-900">Profile Settings</h2>
+                
+                {/* Profile Photo */}
+                <div className="flex justify-center">
+                  <div className="relative group">
+                    <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100">
+                      <img 
+                        src={profilePhotoUrl || currentUser?.profileData.profilePhoto} 
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute bottom-0 right-0 p-2 bg-blue-600 rounded-full text-white hover:bg-blue-700 transition"
+                    >
+                      <MdPhotoCamera className="w-5 h-5" />
+                    </button>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={validateImage}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+
+                {/* Form Fields */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Username
+                    </label>
+                    <input
+                      type="text"
+                      name="username"
+                      value={formData.username}
+                      onChange={handleInputChange}
+                      placeholder={currentUser?.profileData.username}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                      {20 - (formData.username?.length || 0)} characters remaining
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Bio
+                    </label>
+                    <textarea
+                      name="bio"
+                      value={formData.bio}
+                      onChange={handleInputChange}
+                      placeholder={currentUser?.profileData.bio}
+                      rows={3}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                      {100 - (formData.bio?.length || 0)} characters remaining
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={updateProfile}
+                    disabled={loading}
+                    className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition disabled:opacity-50"
+                  >
+                    {loading ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {page === "security" && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-gray-900">Security Settings</h2>
+                <div className="space-y-4">
+                  {["Current Password", "New Password", "Confirm New Password"].map((label) => (
+                    <div key={label}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {label}
+                      </label>
+                      <input
+                        type="password"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  ))}
+                  <button className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition">
+                    Update Password
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

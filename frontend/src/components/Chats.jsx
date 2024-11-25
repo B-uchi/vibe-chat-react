@@ -1,4 +1,6 @@
 import { IoSearch } from "react-icons/io5";
+import { BsChatDots, BsChatDotsFill } from "react-icons/bs"; 
+import { MdOutlinePersonAdd } from "react-icons/md";
 import Conversation from "./Conversation";
 import { connect } from "react-redux";
 import {
@@ -26,80 +28,77 @@ const Chats = ({
   chatCreated,
   clearMessages,
   activeChat,
+  rerender,
 }) => {
   const [loading, setLoading] = useState(true);
   const [requestTabLoading, setRequestTabLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [activeTab, setActiveTab] = useState("friends");
+  const [activeTab, setActiveTab] = useState("chats");
   const navigate = useNavigate();
   const [tab, setTab] = useState("chats");
   const [filteredChats, setFilteredChats] = useState(userChats);
   const [searchTerm, setSearchTerm] = useState("");
   const user = useAuth().user;
 
-  useEffect(() => {
-    const fetchUserChats = async () => {
-      try {
-        const idToken = await user.getIdToken(true);
-        const response = await fetch(
-          "http://localhost:5000/api/user/getChats",
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${idToken}`,
-            },
-          }
-        );
-        if (response.status == 200) {
-          const data = await response.json();
-          console.log(data)
-          setUserChats(data.chats);
-          setLoading(false);
-          setError(false);
-        } else {
-          setLoading(false);
-          setError(true);
+  const fetchChatRequests = async () => {
+    try {
+      const idToken = await user.getIdToken(true);
+      const response = await fetch(
+        "http://localhost:5000/api/user/getRequests",
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
         }
-      } catch (error) {
-        toast.error("A network error occured. Couldn't fetch chats");
-        setLoading(false);
-        setError(true);
-      }
-    };
-
-    const fetchChatRequests = async () => {
-      try {
-        const idToken = await user.getIdToken(true);
-        const response = await fetch(
-          "http://localhost:5000/api/user/getRequests",
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${idToken}`,
-            },
-          }
-        );
-        if (response.status == 200) {
-          const data = await response.json();
-          setChatRequests(data.chatRequests);
-          setRequestTabLoading(false);
-          setError(false);
-        } else {
-          setRequestTabLoading(false);
-          setError(true);
-        }
-      } catch (error) {
-        toast.error("A network error occured. Couldn't fetch message requests");
+      );
+      if (response.status == 200) {
+        const data = await response.json();
+        setChatRequests(data.chatRequests);
+        setRequestTabLoading(false);
+        setError(false);
+      } else {
         setRequestTabLoading(false);
         setError(true);
       }
-    };
+    } catch (error) {
+      toast.error("A network error occured. Couldn't fetch message requests");
+      setRequestTabLoading(false);
+      setError(true);
+    }
+  };
 
+  const fetchUserChats = async () => {
+    try {
+      const idToken = await user.getIdToken(true);
+      const response = await fetch("http://localhost:5000/api/user/getChats", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
+      if (response.status == 200) {
+        const data = await response.json();
+        setUserChats(data.chats);
+        setLoading(false);
+        setError(false);
+      } else {
+        setLoading(false);
+        setError(true);
+      }
+    } catch (error) {
+      toast.error("A network error occured. Couldn't fetch chats");
+      setLoading(false);
+      setError(true);
+    }
+  };
+
+  useEffect(() => {
     fetchChatRequests();
     fetchUserChats();
-  }, [chatCreated]);
+  }, [chatCreated, rerender]);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -128,6 +127,9 @@ const Chats = ({
               };
               setUserChats([...userChats]); // Trigger a re-render
             }
+          } else if (change.type === "removed") {
+            fetchUserChats();
+            fetchChatRequests();
           }
         });
       }
@@ -186,107 +188,130 @@ const Chats = ({
   }, [searchTerm]);
 
   return (
-    <section className="p-3 font-poppins h-full flex flex-col">
+    <section className="p-3 font-poppins h-full flex flex-col bg-white rounded-lg shadow-sm">
       <div className="h-[90px]">
         <form
           onSubmit={searchChat}
-          className="w-full p-1 bg-[#efefef] rounded-md flex items-center"
+          className="w-full p-2 bg-[#f5f5f5] rounded-lg flex items-center transition-all hover:bg-[#efefef] focus-within:bg-[#efefef] focus-within:shadow-md"
         >
-          <button type="submit" className="mr-2" onClick={searchChat}>
-            <IoSearch size={25} />
+          <button type="submit" className="mr-2 text-gray-500" onClick={searchChat}>
+            <IoSearch size={20} />
           </button>
           <input
             type="text"
-            placeholder="Search"
+            placeholder="Search conversations..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
             }}
-            className="bg-transparent flex-grow p-1 outline-none"
+            className="bg-transparent flex-grow p-1 outline-none placeholder:text-gray-400"
           />
         </form>
-        <div className="flex w-full justify-between mt-3 border-b-[1px]">
+        <div className="flex w-full justify-between mt-3 border-b border-gray-200">
           <button
             onClick={() => handleTabClick("chats")}
-            className={`text-center w-1/2 p-2 border-r-[1px] rounded-tl-md ${
-              activeTab == "chats" ? " bg-[#efefef] " : " hover:bg-[#efefef]"
+            className={`flex items-center justify-center gap-2 text-center w-1/2 p-2 transition-all ${
+              activeTab == "chats" 
+                ? "border-b-2 border-blue-500 text-blue-500" 
+                : "text-gray-600 hover:bg-gray-50"
             }`}
           >
+            {activeTab === "chats" ? <BsChatDotsFill /> : <BsChatDots />}
             Friends
           </button>
           <button
             onClick={() => handleTabClick("requests")}
-            className={`text-center w-1/2 p-2 font-bold rounded-tr-md ${
-              activeTab == "requests" ? " bg-[#efefef] " : " hover:bg-[#efefef]"
+            className={`flex items-center justify-center gap-2 text-center w-1/2 p-2 transition-all ${
+              activeTab == "requests"
+                ? "border-b-2 border-blue-500 text-blue-500"
+                : "text-gray-600 hover:bg-gray-50"
             }`}
           >
-            Requests {chatRequests && chatRequests.length > 0 ? `(${chatRequests.length})` : "(0)"}
+            <MdOutlinePersonAdd />
+            Requests
+            {chatRequests && chatRequests.length > 0 && (
+              <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                {chatRequests.length}
+              </span>
+            )}
           </button>
         </div>
       </div>
       {tab == "chats" ? (
-        <div className="overflow-auto flex-grow">
+        <div className="overflow-auto flex-grow scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
           <div className="flex items-center justify-between mt-3 mb-2">
-            <h2 className="font-bold text-2xl">Chats</h2>
+            <h2 className="font-bold text-xl text-gray-800">Recent Chats</h2>
           </div>
           {loading ? (
-            // <div className="loader-black absolute right-[50%] bottom-[50%] translate-x-[50%]"></div>
             <ChatSkeletonLoader />
           ) : error ? (
-            <div className="absolute right-[50%] bottom-[50%] translate-x-[50%]">
-              An error occured
+            <div className="flex items-center justify-center h-full text-gray-500">
+              An error occurred
             </div>
           ) : userChats && userChats.length > 0 ? (
-            userChats.map((chat) => (
-              <Conversation
-                key={chat.chatId}
-                onClick={openChatWindow}
-                data={{
-                  participantId: chat.participantsData.id,
-                  chatId: chat.chatId,
-                  onlineStatus: chat.participantsData.onlineStatus,
-                  lastMessage: chat.lastMessage,
-                  username: chat.participantsData.username,
-                  timestamp: chat.lastMessageTimeStamp,
-                  profilePhoto: chat.participantsData.profilePhoto,
-                  isFriend: chat.isFriend,
-                }}
-              />
-            ))
+            <div className="space-y-2">
+              {userChats.map((chat) => (
+                <Conversation
+                  key={chat.chatId}
+                  onClick={openChatWindow}
+                  data={{
+                    participantId: chat.participantsData.id,
+                    chatId: chat.chatId,
+                    onlineStatus: chat.participantsData.onlineStatus,
+                    lastMessage: chat.lastMessage,
+                    username: chat.participantsData.username,
+                    timestamp: chat.lastMessageTimeStamp,
+                    profilePhoto: chat.participantsData.profilePhoto,
+                    isFriend: chat.isFriend,
+                    initiatedBy: chat.initiatedBy,
+                  }}
+                />
+              ))}
+            </div>
           ) : (
-            <p className="mt-2">No chats found...</p>
+            <div className="flex flex-col items-center justify-center h-[200px] text-gray-500">
+              <BsChatDots size={40} className="mb-2" />
+              <p>No chats found</p>
+            </div>
           )}
         </div>
       ) : null}
       {tab == "requests" ? (
-        <div className="overflow-auto flex-grow">
+        <div className="overflow-auto flex-grow scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
           <div className="flex items-center justify-between mt-3 mb-2">
-            <h2 className="font-bold text-2xl">Message Requests</h2>
+            <h2 className="font-bold text-xl text-gray-800">Message Requests</h2>
           </div>
           {requestTabLoading ? (
             <ChatSkeletonLoader />
           ) : error ? (
-            <div className="absolute right-[50%] bottom-[50%] translate-x-[50%]">
-              An error occured
+            <div className="flex items-center justify-center h-full text-gray-500">
+              An error occurred
             </div>
           ) : chatRequests && chatRequests.length > 0 ? (
-            chatRequests.map((chat) => (
-              <Conversation
-                key={chat.chatId}
-                onClick={openChatWindow}
-                data={{
-                  participantId: chat.participantsData.id,
-                  chatId: chat.chatId,
-                  onlineStatus: chat.participantsData.onlineStatus,
-                  lastMessage: chat.lastMessage,
-                  username: chat.participantsData.username,
-                  timestamp: chat.lastMessageTimeStamp,
-                  profilePhoto: chat.participantsData.profilePhoto,
-                }}
-              />
-            ))
+            <div className="space-y-2">
+              {chatRequests.map((chat) => (
+                <Conversation
+                  key={chat.chatId}
+                  onClick={openChatWindow}
+                  data={{
+                    participantId: chat.participantsData.id,
+                    chatId: chat.chatId,
+                    onlineStatus: chat.participantsData.onlineStatus,
+                    lastMessage: chat.lastMessage,
+                    username: chat.participantsData.username,
+                    timestamp: chat.lastMessageTimeStamp,
+                    profilePhoto: chat.participantsData.profilePhoto,
+                    isFriend: chat.isFriend,
+                    initiatedBy: chat.initiatedBy,
+                  }}
+                />
+              ))}
+            </div>
           ) : (
-            <p className="mt-2">No requests found...</p>
+            <div className="flex flex-col items-center justify-center h-[200px] text-gray-500">
+              <MdOutlinePersonAdd size={40} className="mb-2" />
+              <p>No requests found</p>
+            </div>
           )}
         </div>
       ) : null}
@@ -302,9 +327,12 @@ const mapDispatchToProps = (dispatch) => ({
   clearActiveChat: () => dispatch(clearActiveChat()),
   clearMessages: () => dispatch(clearMessages()),
 });
+
 const mapStateToProps = ({ chat }) => ({
   userChats: chat.userChats,
   chatRequests: chat.chatRequests,
   activeChat: chat.activeChat,
+  rerender: chat.rerender,
 });
+
 export default connect(mapStateToProps, mapDispatchToProps)(Chats);

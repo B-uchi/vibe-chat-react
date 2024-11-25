@@ -25,7 +25,6 @@ const Conversation = ({ data, onClick }) => {
     const date = new Date(seconds * 1000 + nanoseconds / 1000000);
     const now = new Date();
 
-    // Subtract one day from the current date
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
 
@@ -56,23 +55,41 @@ const Conversation = ({ data, onClick }) => {
           initiatedBy,
         })
       }
-      className="flex items-center cursor-pointer hover:bg-[#efefef] rounded-md"
+      className="flex items-center cursor-pointer hover:bg-[#efefef] rounded-lg p-2 transition-all duration-200 relative"
     >
-      <div className="flex items-center gap-2 p-2 w-[80%] lg:w-[85%]">
-        <img className="rounded-full w-[40px] h-[40px]" src={profilePhoto} />
-        <div className="w-full">
-          <h3 className="font-bold">{username}</h3>
+      <div className="flex items-center gap-3 w-[85%]">
+        <div className="relative">
+          <img 
+            className="rounded-full w-[45px] h-[45px] object-cover border-2 border-gray-200" 
+            src={profilePhoto}
+            alt={username}
+          />
+          <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${onlineStatus ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+        </div>
+        <div className="w-full overflow-hidden">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-gray-800">{username}</h3>
+            {!isFriend && (
+              <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
+                Request
+              </span>
+            )}
+          </div>
           {lastMessage ? (
-            <p className="text-sm line-clamp-1 max-w-[90%] break-words">
+            <p className="text-sm text-gray-600 line-clamp-1 max-w-[90%] break-words">
               {lastMessage}
             </p>
           ) : (
-            <p className="text-sm italics">You havent sent a message yet</p>
+            <p className="text-sm text-gray-500 italic">Start a conversation</p>
           )}
         </div>
       </div>
-      <div className="flex flex-col items-end mr-2 w-[20%] lg:w-[15%] min-w-fit">
-        {timestamp && <small>{convertTimestampToTime(timestamp)}</small>}
+      <div className="flex flex-col items-end gap-1 w-[15%] min-w-fit">
+        {timestamp && (
+          <small className="text-xs text-gray-500">
+            {convertTimestampToTime(timestamp)}
+          </small>
+        )}
         <div className="bg-[#313131] text-white text-[10px] font-bold p-1 px-2.5 rounded-full">
           1
         </div>
