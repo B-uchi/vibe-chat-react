@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { toast, Toaster } from "sonner";
 import { auth, db } from "../lib/firebaseConfig";
@@ -26,6 +26,7 @@ const SignIn = () => {
 
   const signIn = async (e) => {
     e.preventDefault();
+
     setLoading(true);
 
     if (!email || !password) {

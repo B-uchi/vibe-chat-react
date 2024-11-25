@@ -11,7 +11,7 @@ import { setActiveChat } from "../redux/chatReducer/chatAction";
 import { connect } from "react-redux";
 import AddUserLoader from "../components/AddUserLoader";
 
-const Dashboard = () => {
+const Dashboard = ({ currentUser }) => {
   const [addPersonModal, setAddPersonModal] = useState(false);
   const [users, setUsers] = useState([]);
   const [chatCreated, setChatCreated] = useState(false);
@@ -49,9 +49,9 @@ const Dashboard = () => {
         Authorization: `Bearer ${idToken}`,
       },
     });
+    const data = await response.json();
     if (response.status == 201) {
       toast.success("Chat created");
-      const data = await response.json();
       setChatCreated(!chatCreated);
       setActiveChat({
         username,
@@ -60,11 +60,15 @@ const Dashboard = () => {
         chatId: data.chatId,
         participantId: id,
         isFriend: data.chatData.isFriend,
+        initiatedBy: data.chatData.initiatedBy,
       });
       setAddPersonModal(false);
     } else {
       if (response.status == 409) {
-        return toast("chat already exists");
+        return toast("Chat already exists");
+      }
+      if (response.status == 400) {
+        return toast(data.message);
       }
       toast.error("Error creating chat");
       console.log("Error creating chat");
@@ -72,7 +76,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className=" h-full flex bg-[#efefef] relative">
+    <div className="flex-1 flex bg-[#efefef] relative overflow-y-hidden">
       <Toaster richColors position="top-right" />
       <div className="bg-[#ffffff] lg:w-[30%] relative w-full md:w-[50%] border-r-[1px] border-r-[#d3d2d2]">
         <Chats chatCreated={chatCreated} />
@@ -90,32 +94,45 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-      <div className="md:flex-grow hidden md:block md:w-[50%] border-r-[1px] border-r-[#d3d2d2]">
+      <div className="md:flex-grow hidden md:block md:w-[50%] lg:w-[70%]">
         {window.innerWidth > 768 && <ChatWindow />}
       </div>
       {addPersonModal && (
-        <div className="bg-[rgba(0,0,0,0.4)] bg-opacity-50 w-full h-full absolute flex justify-center items-center">
-          <div className="relative bg-white rounded-md border-[1px] border-[#e1e1e1] lg:w-1/3 min-w-fit h-[80%] overflow-auto p-3 flex flex-col">
-            <div className="flex gap-4 items-center border-b-[1px] border-[#e1e1e1] mb-2">
-              <button className="mr-2" onClick={() => setAddPersonModal(false)}>
-                <IoMdArrowBack size={25} />
-              </button>
-              <h1 className="font-rowdies text-xl w-1/3">Start a Chat</h1>
-              <div className="flex-grow p-1 bg-[#efefef] rounded-md flex items-center">
-                <IoSearch size={25} className="mr-2" />
-                <input
-                  type="text"
-                  placeholder="Search users"
-                  className="bg-transparent flex-grow p-1 outline-none"
-                />
+        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex justify-center items-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl lg:w-1/3 min-w-[320px] max-h-[80vh] overflow-hidden">
+            {/* Header */}
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setAddPersonModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <IoMdArrowBack size={20} className="text-gray-600" />
+                </button>
+                <h1 className="text-xl font-semibold">Start a Chat</h1>
+              </div>
+              
+              {/* Search Bar */}
+              <div className="mt-4">
+                <div className="relative">
+                  <IoSearch size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search users"
+                    className="w-full pl-10 pr-4 py-2 bg-gray-50 rounded-lg border border-gray-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  />
+                </div>
               </div>
             </div>
-            <div className="flex-grow relative">
+
+            {/* User List */}
+            <div className="overflow-y-auto max-h-[calc(80vh-140px)] p-4">
               {loading ? (
                 <AddUserLoader />
               ) : users && users.length > 0 ? (
                 users.map((user) => (
                   <div
+                    key={user.id}
                     onClick={() => {
                       createChat(
                         user.id,
@@ -124,28 +141,46 @@ const Dashboard = () => {
                         user.onlineStatus
                       );
                     }}
-                    key={user.id}
-                    className="hover:bg-[#e1e1e1] bg-[#efefef] mb-2 rounded-md p-2 cursor-pointer"
+                    className="group flex items-center justify-between p-3 mb-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
                   >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={user.profilePhoto}
-                        alt=""
-                        className="w-[50px] h-[50px] rounded-full"
-                      />
-                      <div className="">
-                        <p className="font-poppins">{user.username}</p>
-                        <p className="font-poppins text-sm line-clamp-1 font-bold">
-                          Bio: <span className="font-normal">{user.bio}</span>
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="relative">
+                        <img
+                          src={user.profilePhoto}
+                          alt=""
+                          className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                        />
+                        {user.onlineStatus && (
+                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 truncate">
+                          {user.username}
+                        </h3>
+                        <p className="text-sm text-gray-500 truncate">
+                          {user.bio || "No bio available"}
                         </p>
-                      </div>{" "}
+                      </div>
                     </div>
+                    
+                    {currentUser.blocked.includes(user.id) && (
+                      <button className="px-4 py-1 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors">
+                        Unblock
+                      </button>
+                    )}
+                    {user.blocked.includes(currentUser.id) && (
+                      <span className="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 rounded-full">
+                        Blocked
+                      </span>
+                    )}
                   </div>
                 ))
               ) : (
-                <p className="absolute right-[50%] bottom-[50%] translate-x-[50%]">
-                  No users found
-                </p>
+                <div className="flex flex-col items-center justify-center h-48 text-gray-500">
+                  <p className="text-lg">No users found</p>
+                  <p className="text-sm">Try searching for someone else</p>
+                </div>
               )}
             </div>
           </div>
@@ -159,4 +194,8 @@ const mapDispatchToProps = (dispatch) => ({
   setActiveChat: () => dispatch(setActiveChat()),
 });
 
-export default connect(null, mapDispatchToProps)(Dashboard);
+const mapStateToProps = ({ user }) => ({
+  currentUser: user.currentUser,
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(Dashboard);

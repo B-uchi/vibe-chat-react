@@ -17,6 +17,7 @@ const CompleteSignup = () => {
   const [loadingError, setLoadingError] = useState(false);
   const [username, setUsername] = useState("");
   const navigate = useNavigate();
+  const [charactersLeftUname, setCharactersLeftUname] = useState(20);
   const [authLoading, setAuthLoading] = useState(null);
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(null);
@@ -71,7 +72,7 @@ const CompleteSignup = () => {
   }
 
   const completeSignup = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
     setUploading(true);
 
     const usernameRegex = /^[a-zA-Z0-9]{4,16}$/;
@@ -79,13 +80,13 @@ const CompleteSignup = () => {
     const idToken = await user.getIdToken(true);
 
     if (!username) {
-      setUploading(false)
+      setUploading(false);
       return toast.error("Username is required");
     }
 
     if (!usernameRegex.test(username) || username.includes(" ")) {
       toast.error("Invalid Username");
-      setUploading(false)
+      setUploading(false);
       return setError(true);
     }
 
@@ -120,7 +121,7 @@ const CompleteSignup = () => {
           return navigate("/");
         }
         if (response.status == 409) {
-          return toast.error("Username already exists")
+          return toast.error("Username already exists");
         }
       } catch (error) {
         setLoading(false);
@@ -187,7 +188,12 @@ const CompleteSignup = () => {
               <input
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value.trim())}
+                onChange={(e) => {
+                  if (e.target.value.length <= 20) {
+                    setUsername(e.target.value.trim());
+                    setCharactersLeftUname(20 - e.target.value.length);
+                  }
+                }}
                 placeholder="Username"
                 className="border-[1px] border-[#3333333a] p-2 flex-grow rounded-md font-rowdies"
               />
