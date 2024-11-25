@@ -6,7 +6,7 @@ const db = getFirestore();
 const auth = getAuth();
 
 export const createChat = async (req, res) => {
-  console.log("Request received to create or load chat");
+  console.log("Request received to create chat");
   const { otherUserId } = req.body;
   const userId = req.uid;
 
@@ -29,13 +29,23 @@ export const createChat = async (req, res) => {
     }
 
     if (!chatExists) {
+      const userDoc = await db.collection("users").doc(userId).get();
+      if (userDoc.data().blocked.includes(otherUserId)) {
+        return res.status(400).json({ message: "You blocked that user." });
+      }
+      if (userDoc.data().blockedBy.includes(otherUserId)) {
+        return res
+          .status(400)
+          .json({ message: "You are blocked by that user." });
+      }
       const chatRef = await db.collection("chats").add({
         participants: [userId, otherUserId],
+        initiatedBy: userId,
         isFriend: false,
         lastMessage: null,
         lastMessageTimeStamp: null,
       });
-      const chatData = (await chatRef.get()).data()
+      const chatData = (await chatRef.get()).data();
       return res.status(201).json({ chatId: chatRef.id, chatData });
     } else {
       return res
@@ -91,5 +101,37 @@ export const sendMessage = async (req, res) => {
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: error });
+  }
+};
+
+export const requestDecision = async (req, res) => {
+  console.log("req recieved to requestDecision");
+  const { chatId, decision, participantId } = req.body;
+  try {
+    if (decision === "accept") {
+      const chatRef = db.collection("chats").doc(chatId);
+      await chatRef.set({ isFriend: true }, { merge: true });
+      return res.sendStatus(200);
+    } else {
+      const userRef = db.collection("users").doc(req.uid);
+      const participantRef = db.collection("users").doc(participantId);
+
+      const userDoc = await userRef.get();
+      const participantDoc = await participantRef.get();
+      await userRef.set(
+        { blocked: [...userDoc.data().blocked, participantId] },
+        { merge: true }
+      );
+      await participantRef.set(
+        { blockedBy: [...participantDoc.data().blockedBy, req.uid] },
+        { merge: true }
+      );
+      const chatRef = db.collection("chats").doc(chatId);
+      await chatRef.delete();
+      return res.sendStatus(200);
+    }
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: error.message });
   }
 };
