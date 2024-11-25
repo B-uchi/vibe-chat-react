@@ -5,6 +5,7 @@ import {
   getUser,
   getUserChats,
   setUsername,
+  unblockUser,
   updateProfile,
 } from "../controllers/userController.js";
 import { verifyToken } from "../middleware/auth.js";
@@ -17,5 +18,6 @@ router.get("/getOtherUsers", verifyToken, getOtherUsers);
 router.get("/getChats", verifyToken, getUserChats);
 router.get("/getRequests", verifyToken, getChatRequests);
 router.patch("/updateProfile", verifyToken, updateProfile);
+router.patch("/unblockUser", verifyToken, unblockUser);
 
 export default router;

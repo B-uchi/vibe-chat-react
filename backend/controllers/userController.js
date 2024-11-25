@@ -61,6 +61,7 @@ export const setUsername = async (req, res) => {
       const userRef = db.collection("users").doc(req.uid);
       await userRef.set(
         {
+          blocked: [],
           profileData: {
             username: username.trim(),
             profilePhoto: photoId || null,
@@ -111,6 +112,7 @@ export const getOtherUsers = async (req, res) => {
             profilePhoto: doc.data().profileData.profilePhoto,
             onlineStatus: doc.data().onlineStatus,
             bio: doc.data().profileData.bio,
+            blocked: doc.data().blocked,
           });
         }
       }
@@ -128,7 +130,7 @@ export const getUserChats = async (req, res) => {
     const userChatQuery = db
       .collection("chats")
       .where("participants", "array-contains", req.uid)
-      .where("isFriend", "==", true);
+      .where("initiatedBy", "==", req.uid)
     const querySnapshot = await userChatQuery.get();
     const chats = [];
 
@@ -165,20 +167,28 @@ export const getUserChats = async (req, res) => {
 };
 
 export const getChatRequests = async (req, res) => {
-  console.log("req recieved to getChatRequests");
+  console.log("req received to getChatRequests");
   try {
+    // First get all chats where user is a participant
     const chatRequestQuery = db
       .collection("chats")
-      .where("participants", "array-contains", req.uid)
-      .where("isFriend", "==", false);
+      .where("participants", "array-contains", req.uid);
+      
     const querySnapshot = await chatRequestQuery.get();
     const chatRequests = [];
-  
+
+    // Then filter in memory for non-friend chats initiated by others
     for (const doc of querySnapshot.docs) {
       const chatData = doc.data();
+      
+      // Skip if user initiated or if they are friends
+      if (chatData.initiatedBy === req.uid || chatData.isFriend === true) {
+        continue;
+      }
+
       const chatId = doc.id;
       const otherParticipant = chatData.participants.filter(
-        (id) => id != req.uid
+        (id) => id !== req.uid
       );
       const participantsDataPromise = otherParticipant.map(
         async (participantId) => {
@@ -202,6 +212,38 @@ export const getChatRequests = async (req, res) => {
 
     return res.status(200).json({ chatRequests });
   } catch (error) {
-    return res.status(500).json({ message: "Error fetching chats requests" });
+    console.error("Error fetching chat requests:", error);
+    return res.status(500).json({ message: "Error fetching chat requests" });
+  }
+};
+
+export const unblockUser = async (req, res) => {
+  console.log("req received to unblockUser");
+  const { userToUnblockId } = req.body;
+  const userId = req.uid;
+
+  try {
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const blockedUsers = userDoc.data().blocked || [];
+
+    if (!blockedUsers.includes(userToUnblockId)) {
+      return res.status(400).json({ message: "User is not blocked" });
+    }
+
+    await userRef.update({
+      blocked: FieldValue.arrayRemove(userToUnblockId)
+    });
+
+    return res.status(200).json({ message: "User unblocked successfully" });
+
+  } catch (error) {
+    console.error("Error unblocking user:", error);
+    return res.status(500).json({ message: "Error unblocking user" });
   }
 };
