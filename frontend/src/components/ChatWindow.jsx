@@ -25,6 +25,7 @@ import { db } from "../lib/firebaseConfig";
 import { FaArrowDown } from "react-icons/fa6";
 import { MdCall, MdDelete } from "react-icons/md";
 import { IoMdClose } from "react-icons/io";
+import { io } from "socket.io-client";
 
 const ChatWindow = ({
   activeChat,
@@ -41,9 +42,55 @@ const ChatWindow = ({
   const [showMessageOptions, setShowMessageOptions] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState("");
   const [showRequest, setShowRequest] = useState(true);
+  const [isTyping, setIsTyping] = useState(false);
+  const [partnerTyping, setPartnerTyping] = useState(false);
   const user = useAuth().user;
   const messagesEndRef = useRef(null);
+  const socketRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
   let groupedMessages;
+
+  useEffect(() => {
+    socketRef.current = io(import.meta.env.VITE_API_URL);
+
+    socketRef.current.on("typing_status", ({ chatId, userId, isTyping }) => {
+      if (activeChat && chatId === activeChat.chatId && userId !== currentUser.id) {
+        setPartnerTyping(isTyping);
+      }
+    });
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
+  }, [activeChat]);
+
+  const emitTyping = (isTyping) => {
+    if (socketRef.current && activeChat) {
+      socketRef.current.emit("typing", {
+        chatId: activeChat.chatId,
+        userId: currentUser.id,
+        isTyping
+      });
+    }
+  };
+
+  const handleTyping = () => {
+    if (!isTyping) {
+      setIsTyping(true);
+      emitTyping(true);
+    }
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      emitTyping(false);
+    }, 2000);
+  };
 
   const deleteMessage = () => {
     // implement backend logic first
@@ -72,10 +119,18 @@ const ChatWindow = ({
       clearActiveChat();
       reRenderChats();
       setdecisionBtnLoader(false);
-      toast.success("Request decision successful");
+      toast.success(
+        decision == "accept"
+          ? "Request accepted"
+          : "Request declined, you won't be notified again"
+      );
     } else {
       setdecisionBtnLoader(false);
-      toast.error("Error with request decision");
+      toast.error(
+        decision == "accept"
+          ? "Error accepting request"
+          : "Error declining request"
+      );
     }
   };
 
@@ -163,19 +218,24 @@ const ChatWindow = ({
       return toast.error("Message can't be empty");
     }
     const idToken = await user.getIdToken(true);
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chat/sendMessage`, {
-      method: "POST",
-      body: JSON.stringify({
-        messageBody,
-        chatId: activeChat.chatId,
-      }),
-      headers: {
-        "Content-type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-    });
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/chat/sendMessage`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          messageBody,
+          chatId: activeChat.chatId,
+        }),
+        headers: {
+          "Content-type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+      }
+    );
     if (response.status == 201) {
       setMessageBody("");
+      setIsTyping(false);
+      emitTyping(false);
     } else {
       toast.error("Error sending message.");
     }
@@ -248,7 +308,7 @@ const ChatWindow = ({
                       {activeChat.username}
                     </h3>
                     <p className="text-sm text-gray-500">
-                      {activeChat.onlineStatus ? "Online" : "Offline"}
+                      {partnerTyping ? "Typing..." : activeChat.onlineStatus ? "Online" : "Offline"}
                     </p>
                   </div>
                 </div>
@@ -269,64 +329,68 @@ const ChatWindow = ({
                 </button>
               </div>
             </div>
-
-            {/* Friend Request Banner */}
-            {showRequest && !activeChat.isFriend && (
-              <div
-                className={`mt-3 p-3 bg-blue-50 rounded-lg ${
-                  activeChat.initiatedBy !== currentUser.id
-                    ? "border border-blue-200"
-                    : ""
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-blue-800">
-                    {activeChat.initiatedBy === currentUser.id ? (
-                      <span>
-                        Waiting for {activeChat.username} to accept your request
-                      </span>
-                    ) : (
-                      <span>
-                        <strong>{activeChat.username}</strong> wants to connect
-                      </span>
-                    )}
-                  </p>
-                  {activeChat.initiatedBy !== currentUser.id && (
-                    <div className="flex items-center space-x-2">
-                      {decisionBtnLoader ? (
-                        <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => handleRequestDecision("accept")}
-                            className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition"
-                          >
-                            Accept
-                          </button>
-                          <button
-                            onClick={() => handleRequestDecision("decline")}
-                            className="px-4 py-1.5 bg-gray-200 text-gray-800 text-sm rounded-md hover:bg-gray-300 transition"
-                          >
-                            Decline
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Messages Area */}
           <div className="flex flex-col flex-1 overflow-hidden">
+            {/* Friend Request Banner */}
+            {showRequest && !activeChat.isFriend && (
+              <div className="p-3">
+                <div
+                  className={`p-3 bg-blue-50 rounded-lg z-50 ${
+                    activeChat.initiatedBy !== currentUser.id
+                      ? "border border-blue-200"
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-blue-800">
+                      {activeChat.initiatedBy === currentUser.id ? (
+                        <span>
+                          Waiting for {activeChat.username} to accept your
+                          request
+                        </span>
+                      ) : (
+                        <span>
+                          <strong>{activeChat.username}</strong> wants to
+                          connect
+                        </span>
+                      )}
+                    </p>
+                    {activeChat.initiatedBy !== currentUser.id && (
+                      <div className="flex items-center space-x-2">
+                        {decisionBtnLoader ? (
+                          <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleRequestDecision("accept")}
+                              className="px-4 py-1.5 cursor-pointer bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition"
+                            >
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => handleRequestDecision("decline")}
+                              className="px-4 py-1.5 cursor-pointer bg-gray-200 text-gray-800 text-sm rounded-md hover:bg-gray-300 transition"
+                            >
+                              Decline
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {fetchingMsgs ? (
               <div className="h-full flex items-center justify-center">
                 <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
               </div>
             ) : (
               <>
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto custom-scrollbar">
                   <div className="px-4 py-6">
                     {messages && messages.length > 0 ? (
                       Object.entries(groupedMessages).map(
@@ -409,7 +473,10 @@ const ChatWindow = ({
                       <input
                         type="text"
                         value={messageBody}
-                        onChange={(e) => setMessageBody(e.target.value)}
+                        onChange={(e) => {
+                          setMessageBody(e.target.value);
+                          handleTyping();
+                        }}
                         placeholder="Type a message..."
                         className="w-full px-4 py-2 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />

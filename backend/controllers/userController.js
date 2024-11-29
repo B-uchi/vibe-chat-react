@@ -193,8 +193,6 @@ export const getUserChats = async (req, res) => {
         continue;
       }
 
-      console.log("Do i get here?");
-
       // Get other participant's data
       const participantDoc = await db.collection("users").doc(otherParticipantId).get();
       const participantData = {
@@ -366,3 +364,28 @@ export const blockUser = async (req, res) => {
     return res.status(500).json({ message: "Error blocking user" });
   }
 };
+
+// /**
+//  * Updates the online status of a user
+//  * @param {Object} req - Request object containing user ID and status
+//  * @param {Object} res - Response object
+//  * @returns {Object} Success message or error
+//  */
+// export const updateStatus = async (req, res) => {
+//   console.log("Request received to update status");
+//   const { status } = req.body;
+//   const userId = req.uid;
+//   try {
+//     const userRef = db.collection("users").doc(req.uid);
+    
+//     await userRef.set({
+//       onlineStatus: status,
+//       lastOnline: FieldValue.serverTimestamp(),
+//     }, { merge: true });
+
+//     return res.sendStatus(200);
+//   } catch (error) {
+//     console.error("Error updating status:", error);
+//     return res.sendStatus(500);
+//   }
+// };

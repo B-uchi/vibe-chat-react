@@ -19,5 +19,5 @@ router.get("/getChats", verifyToken, getUserChats);
 router.get("/getRequests", verifyToken, getChatRequests);
 router.patch("/updateProfile", verifyToken, updateProfile);
 router.patch("/unblockUser", verifyToken, unblockUser);
-
+// router.patch("/updateStatus", verifyToken, updateStatus);
 export default router;

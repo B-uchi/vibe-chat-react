@@ -10,8 +10,10 @@ import { useAuth } from "../lib/hooks/useAuth";
 import { setActiveChat } from "../redux/chatReducer/chatAction";
 import { connect } from "react-redux";
 import AddUserLoader from "../components/AddUserLoader";
+import { useSocket } from '../context/SocketContext';
 
 const Dashboard = ({ currentUser, setActiveChat }) => {
+  const socket = useSocket();
   const [addPersonModal, setAddPersonModal] = useState(false);
   const [users, setUsers] = useState([]);
   const [chatCreated, setChatCreated] = useState(false);

@@ -15,6 +15,7 @@ import { db } from "../lib/firebaseConfig";
 import { FaArrowDown } from "react-icons/fa6";
 import { Navigate } from "react-router-dom";
 import { MdCall } from "react-icons/md";
+import { useSocket } from '../context/SocketContext';
 
 const MobileChatWindow = ({
   activeChat,
@@ -28,10 +29,14 @@ const MobileChatWindow = ({
   const [fetchingMsgs, setFetchingMsgs] = useState(true);
   const [messageBody, setMessageBody] = useState("");
   const [decisionBtnLoader, setDecisionBtnLoader] = useState(false);
-  const [showRequest, setShowRequest] = useState(false);
+  const [showRequest, setShowRequest] = useState(true);
   const user = useAuth().user;
   const messagesEndRef = useRef(null);
   let groupedMessages;
+  const [isTyping, setIsTyping] = useState(false);
+  const [partnerTyping, setPartnerTyping] = useState(false);
+  const socket = useSocket();
+  const typingTimeoutRef = useRef(null);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -143,17 +148,20 @@ const MobileChatWindow = ({
     }
     try {
       const idToken = await user.getIdToken(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chat/sendMessage`, {
-        method: "POST",
-        body: JSON.stringify({
-          messageBody: messageBody.trim(),
-          chatId: activeChat.chatId,
-        }),
-        headers: {
-          "Content-type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/chat/sendMessage`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            messageBody: messageBody.trim(),
+            chatId: activeChat.chatId,
+          }),
+          headers: {
+            "Content-type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
       if (response.ok) {
         setMessageBody("");
       } else {
@@ -193,6 +201,42 @@ const MobileChatWindow = ({
     }, {});
   }
 
+  useEffect(() => {
+    if (socket && activeChat) {
+      socket.on("typing_status", ({ chatId, userId, isTyping }) => {
+        if (chatId === activeChat.chatId && userId !== currentUser.id) {
+          setPartnerTyping(isTyping);
+        }
+      });
+    }
+  }, [socket, activeChat]);
+
+  const emitTyping = (isTyping) => {
+    if (socket && activeChat) {
+      socket.emit("typing", {
+        chatId: activeChat.chatId,
+        userId: currentUser.id,
+        isTyping
+      });
+    }
+  };
+
+  const handleTyping = () => {
+    if (!isTyping) {
+      setIsTyping(true);
+      emitTyping(true);
+    }
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      emitTyping(false);
+    }, 2000);
+  };
+
   if (!activeChat) return <Navigate to="/" />;
 
   return (
@@ -221,7 +265,7 @@ const MobileChatWindow = ({
                   {activeChat.username}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {activeChat.onlineStatus ? "Online" : "Offline"}
+                  {partnerTyping ? "Typing..." : activeChat.onlineStatus ? "Online" : "Offline"}
                 </p>
               </div>
             </div>
@@ -243,14 +287,24 @@ const MobileChatWindow = ({
         </div>
 
         {showRequest && !activeChat.isFriend && (
-          <div className="bg-blue-50 p-4 border-b">
+          <div
+            className={`mt-3 p-3 bg-blue-50 rounded-lg ${
+              activeChat.initiatedBy !== currentUser.id
+                ? "border border-blue-200"
+                : ""
+            }`}
+          >
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-600">
-                <span className="font-medium">
-                  {activeChat.initiatedBy === currentUser.id
-                    ? "You sent a chat request"
-                    : "Chat request received"}
-                </span>
+              <p className="text-sm text-blue-800">
+                {activeChat.initiatedBy === currentUser.id ? (
+                  <span>
+                    Waiting for {activeChat.username} to accept your request
+                  </span>
+                ) : (
+                  <span>
+                    <strong>{activeChat.username}</strong> wants to connect
+                  </span>
+                )}
               </p>
               {activeChat.initiatedBy !== currentUser.id && (
                 <div className="flex items-center space-x-2">
@@ -315,9 +369,7 @@ const MobileChatWindow = ({
                                 <p>{message.message}</p>
                                 <p
                                   className={`text-xs mt-1 ${
-                                    isSender
-                                      ? "text-blue-100"
-                                      : "text-gray-500"
+                                    isSender ? "text-blue-100" : "text-gray-500"
                                   }`}
                                 >
                                   {convertTimestampToTime(message.timeStamp)}
@@ -346,7 +398,10 @@ const MobileChatWindow = ({
                     <input
                       type="text"
                       value={messageBody}
-                      onChange={(e) => setMessageBody(e.target.value)}
+                      onChange={(e) => {
+                        setMessageBody(e.target.value);
+                        handleTyping();
+                      }}
                       placeholder="Type a message..."
                       className="w-full px-4 py-2 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
