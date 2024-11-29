@@ -43,25 +43,27 @@ const connectedUsers = new Map();
 // Make connectedUsers accessible to routes/controllers
 app.set('connectedUsers', connectedUsers);
 
+
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
   socket.on("user_connected", (userId) => {
     connectedUsers.set(userId, socket.id);
     io.emit("user_status", { userId, status: "online" });
-    
-    // Add socket instance to app for controller access
-    app.set(`socket:${userId}`, socket);
   });
 
-  socket.on("typing", ({ chatId, userId, isTyping }) => {
-    console.log("typing event received");
-    const participants = chatId.split("-");
-    const recipientId = participants.find(id => id !== userId);
-    const recipientSocket = connectedUsers.get(recipientId);
-    
+  socket.on("typing", ({ chatId, userId, otherParticipantId, isTyping }) => {
+    const recipientSocket = connectedUsers.get(otherParticipantId);
+
     if (recipientSocket) {
       io.to(recipientSocket).emit("typing_status", { chatId, userId, isTyping });
+    }
+  });
+
+  socket.on("is_online", (userId) => {
+    const recipientSocket = connectedUsers.get(userId);
+    if (recipientSocket) {
+      io.emit("user_status", { userId, status: "online" });
     }
   });
 
