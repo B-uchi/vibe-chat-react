@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { MdOutlineSecurity, MdPhotoCamera } from "react-icons/md";
-import { IoPerson } from "react-icons/io5";
+import { IoArrowBack, IoPerson } from "react-icons/io5";
 import { connect } from "react-redux";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { storage } from "../lib/firebaseConfig";
@@ -8,6 +8,7 @@ import { useAuth } from "../lib/hooks/useAuth";
 import { updateCurrentUser } from "../redux/userReducer/userAction";
 import { toast, Toaster } from "sonner";
 import { RiGitRepositoryPrivateFill } from "react-icons/ri";
+import { useNavigate } from "react-router-dom";
 
 const Settings = ({ currentUser, updateCurrentUser }) => {
   const user = useAuth().user;
@@ -17,10 +18,10 @@ const Settings = ({ currentUser, updateCurrentUser }) => {
     bio: "",
     currentPassword: "",
     newPassword: "",
-    confirmPassword: ""
+    confirmPassword: "",
   });
   const fileInputRef = useRef(null);
-  const [activeButton, setActiveBtn] = useState("profile");
+  const navigate = useNavigate();
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(null);
   const [uploadedPhotoUrl, setUploadedPhotoUrl] = useState(null);
@@ -28,12 +29,12 @@ const Settings = ({ currentUser, updateCurrentUser }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    const maxLength = name === 'bio' ? 100 : 20;
-    
+    const maxLength = name === "bio" ? 100 : 20;
+
     if (value.length <= maxLength) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [name]: value
+        [name]: value,
       }));
     }
   };
@@ -76,25 +77,28 @@ const Settings = ({ currentUser, updateCurrentUser }) => {
         photoUrl = await getDownloadURL(storageRef);
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/user/updateProfile`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          bio: formData.bio,
-          profilePhotoUrl: photoUrl,
-        }),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/user/updateProfile`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            username: formData.username,
+            bio: formData.bio,
+            profilePhotoUrl: photoUrl,
+          }),
+        }
+      );
 
       const data = await response.json();
 
       if (response.status === 200) {
         toast.success("Profile updated successfully");
         updateCurrentUser(data.userData);
-        setFormData(prev => ({...prev, username: "", bio: ""}));
+        setFormData((prev) => ({ ...prev, username: "", bio: "" }));
       } else {
         toast.error(data.message || "Failed to update profile");
       }
@@ -109,7 +113,7 @@ const Settings = ({ currentUser, updateCurrentUser }) => {
   const menuItems = [
     { id: "profile", icon: IoPerson, label: "Profile Settings" },
     { id: "security", icon: MdOutlineSecurity, label: "Security" },
-    { id: "privacy", icon: RiGitRepositoryPrivateFill, label: "Privacy" }
+    { id: "privacy", icon: RiGitRepositoryPrivateFill, label: "Privacy" },
   ];
 
   return (
@@ -119,16 +123,22 @@ const Settings = ({ currentUser, updateCurrentUser }) => {
         <div className="flex flex-col md:flex-row h-full">
           {/* Sidebar */}
           <div className="md:w-64 bg-gray-50 p-6 border-r border-gray-200">
+            <button
+              onClick={() => navigate("/")}
+              className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
+            >
+              <IoArrowBack className="h-5 w-5 mr-1" />
+            </button>
             <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
             <nav className="space-y-2">
-              {menuItems.map(item => (
+              {menuItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => setPage(item.id)}
                   className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                    page === item.id 
-                    ? "bg-blue-50 text-blue-700" 
-                    : "text-gray-700 hover:bg-gray-100"
+                    page === item.id
+                      ? "bg-blue-50 text-blue-700"
+                      : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
                   <item.icon className="h-5 w-5 mr-3" />
@@ -142,14 +152,19 @@ const Settings = ({ currentUser, updateCurrentUser }) => {
           <div className="flex-1 p-6">
             {page === "profile" && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-900">Profile Settings</h2>
-                
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Profile Settings
+                </h2>
+
                 {/* Profile Photo */}
                 <div className="flex justify-center">
                   <div className="relative group">
                     <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100">
-                      <img 
-                        src={profilePhotoUrl || currentUser?.profileData.profilePhoto} 
+                      <img
+                        src={
+                          profilePhotoUrl ||
+                          currentUser?.profileData.profilePhoto
+                        }
                         alt="Profile"
                         className="w-full h-full object-cover"
                       />
@@ -185,7 +200,8 @@ const Settings = ({ currentUser, updateCurrentUser }) => {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <p className="mt-1 text-sm text-gray-500">
-                      {20 - (formData.username?.length || 0)} characters remaining
+                      {20 - (formData.username?.length || 0)} characters
+                      remaining
                     </p>
                   </div>
 
@@ -219,9 +235,15 @@ const Settings = ({ currentUser, updateCurrentUser }) => {
 
             {page === "security" && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-gray-900">Security Settings</h2>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Security Settings
+                </h2>
                 <div className="space-y-4">
-                  {["Current Password", "New Password", "Confirm New Password"].map((label) => (
+                  {[
+                    "Current Password",
+                    "New Password",
+                    "Confirm New Password",
+                  ].map((label) => (
                     <div key={label}>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         {label}
