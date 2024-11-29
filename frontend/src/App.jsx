@@ -21,6 +21,7 @@ import { connect, useDispatch, useSelector } from "react-redux";
 import { setCurrentUser } from "./redux/userReducer/userAction";
 import MobileChatWindow from "./pages/MobileChatWindow";
 import ResetPassword from "./pages/ResetPassword";
+import { SocketProvider } from './context/SocketContext';
 
 const AuthChecker = ({ children }) => {
   const navigate = useNavigate();
@@ -40,7 +41,9 @@ const AuthChecker = ({ children }) => {
       await fetchUserData(user);
     });
   
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+    };
   }, [reload]);
   
   const handleSessionExpired = () => {
@@ -73,7 +76,6 @@ const AuthChecker = ({ children }) => {
       toast.error(error.message || "Network error");
     }
   };
-  
 
   if (loading) {
     return (
@@ -100,7 +102,11 @@ const AuthChecker = ({ children }) => {
     );
   }
 
-  return children;
+  return (
+    <SocketProvider userId={auth.currentUser?.uid}>
+      {children}
+    </SocketProvider>
+  );
 };
 
 function App() {
