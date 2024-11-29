@@ -1,8 +1,8 @@
-import { IoSearch } from "react-icons/io5";
-import { BsChatDots, BsChatDotsFill } from "react-icons/bs"; 
+import { IoSearch, IoSettingsOutline } from "react-icons/io5";
+import { BsChatDots, BsChatDotsFill } from "react-icons/bs";
 import { MdOutlinePersonAdd } from "react-icons/md";
 import Conversation from "./Conversation";
-import { connect } from "react-redux";
+import { connect, useDispatch } from "react-redux";
 import {
   clearActiveChat,
   clearMessages,
@@ -13,10 +13,12 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../lib/hooks/useAuth";
 import { toast } from "sonner";
-import { db } from "../lib/firebaseConfig";
+import { auth, db } from "../lib/firebaseConfig";
 import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import ChatSkeletonLoader from "./ChatSkeletonLoader";
+import { GoSignOut } from "react-icons/go";
+import { signOut } from "firebase/auth";
 
 const Chats = ({
   setActiveChat,
@@ -39,6 +41,7 @@ const Chats = ({
   const [filteredChats, setFilteredChats] = useState(userChats);
   const [searchTerm, setSearchTerm] = useState("");
   const user = useAuth().user;
+  const dispatch = useDispatch();
 
   const fetchChatRequests = async () => {
     try {
@@ -72,13 +75,16 @@ const Chats = ({
   const fetchUserChats = async () => {
     try {
       const idToken = await user.getIdToken(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/user/getChats`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/user/getChats`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
       if (response.status == 200) {
         const data = await response.json();
         setUserChats(data.chats);
@@ -118,7 +124,7 @@ const Chats = ({
                 (userChat) => userChat.chatId === modifiedChatId
               );
             }
-            
+
             let matchingRequestIndex = -1;
             if (chatRequests) {
               matchingRequestIndex = chatRequests.findIndex(
@@ -131,7 +137,9 @@ const Chats = ({
                 ...chatRequests[matchingRequestIndex],
                 lastMessage: modifiedChatData.lastMessage,
                 lastMessageTimeStamp: modifiedChatData.lastMessageTimeStamp,
+                lastSender: modifiedChatData.lastSender,
               };
+              console.log("chatRequests+: ", chatRequests);
               setChatRequests([...chatRequests]); // Trigger a re-render
             }
 
@@ -140,6 +148,7 @@ const Chats = ({
                 ...userChats[matchingChatIndex],
                 lastMessage: modifiedChatData.lastMessage,
                 lastMessageTimeStamp: modifiedChatData.lastMessageTimeStamp,
+                lastSender: modifiedChatData.lastSender,
               };
               setUserChats([...userChats]); // Trigger a re-render
             }
@@ -203,32 +212,77 @@ const Chats = ({
     chatListReset();
   }, [searchTerm]);
 
+  const signOutUser = async () => {
+    try {
+      const idToken = await user.getIdToken(true);
+      await fetch(`${import.meta.env.VITE_API_URL}/api/user/updateStatus`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ status: false }),
+      });
+
+      await signOut(auth);
+      sessionStorage.clear();
+      dispatch(clearCurrentUser());
+      navigate("/sign-in", { replace: true });
+    } catch (error) {
+      console.log(error);
+      toast.error("An error occurred. Please try again.");
+    }
+  };
+
   return (
     <section className="p-3 font-poppins h-full flex flex-col bg-white rounded-lg shadow-sm">
       <div className="h-[90px]">
-        <form
-          onSubmit={searchChat}
-          className="w-full p-2 bg-[#f5f5f5] rounded-lg flex items-center transition-all hover:bg-[#efefef] focus-within:bg-[#efefef] focus-within:shadow-md"
-        >
-          <button type="submit" className="mr-2 text-gray-500" onClick={searchChat}>
-            <IoSearch size={20} />
+        <div className="flex items-center gap-2 w-full">
+          <form
+            onSubmit={searchChat}
+            className="flex-1 p-2 bg-[#f5f5f5] rounded-lg flex items-center transition-all hover:bg-[#efefef] focus-within:bg-[#efefef] focus-within:shadow-md"
+          >
+            <button
+              type="submit"
+              className="mr-2 text-gray-500"
+              onClick={searchChat}
+              title="Search"
+            >
+              <IoSearch size={20} />
+            </button>
+            <input
+              type="text"
+              placeholder="Search conversations..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+              }}
+              className="bg-transparent flex-grow p-1 outline-none placeholder:text-gray-400"
+            />
+          </form>
+          <button
+            type="button"
+            onClick={() => navigate("/settings")}
+            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Settings"
+          >
+            <IoSettingsOutline size={20} />
           </button>
-          <input
-            type="text"
-            placeholder="Search conversations..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-            }}
-            className="bg-transparent flex-grow p-1 outline-none placeholder:text-gray-400"
-          />
-        </form>
+          <button
+            type="button"
+            onClick={signOutUser}
+            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Sign Out"
+          >
+            <GoSignOut size={20} />
+          </button>
+        </div>
         <div className="flex w-full justify-between mt-3 border-b border-gray-200">
           <button
             onClick={() => handleTabClick("chats")}
             className={`flex items-center justify-center gap-2 text-center w-1/2 p-2 transition-all ${
-              activeTab == "chats" 
-                ? "border-b-2 border-blue-500 text-blue-500" 
+              activeTab == "chats"
+                ? "border-b-2 border-blue-500 text-blue-500"
                 : "text-gray-600 hover:bg-gray-50"
             }`}
           >
@@ -275,6 +329,7 @@ const Chats = ({
                     chatId: chat.chatId,
                     onlineStatus: chat.participantsData.onlineStatus,
                     lastMessage: chat.lastMessage,
+                    lastSender: chat.lastSender,
                     username: chat.participantsData.username,
                     timestamp: chat.lastMessageTimeStamp,
                     profilePhoto: chat.participantsData.profilePhoto,
@@ -295,7 +350,9 @@ const Chats = ({
       {tab == "requests" ? (
         <div className="overflow-auto flex-grow scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
           <div className="flex items-center justify-between mt-3 mb-2">
-            <h2 className="font-bold text-xl text-gray-800">Message Requests</h2>
+            <h2 className="font-bold text-xl text-gray-800">
+              Message Requests
+            </h2>
           </div>
           {requestTabLoading ? (
             <ChatSkeletonLoader />
@@ -314,6 +371,7 @@ const Chats = ({
                     chatId: chat.chatId,
                     onlineStatus: chat.participantsData.onlineStatus,
                     lastMessage: chat.lastMessage,
+                    lastSender: chat.lastSender,
                     username: chat.participantsData.username,
                     timestamp: chat.lastMessageTimeStamp,
                     profilePhoto: chat.participantsData.profilePhoto,
