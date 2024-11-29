@@ -18,6 +18,7 @@
     "ee-first": "^1.1.1",
     "express": "^4.19.2",
     "firebase-admin": "^12.2.0",
-    "nodemon": "^3.1.4"
+    "nodemon": "^3.1.4",
+    "socket.io": "^4.8.1"
   }
 }
