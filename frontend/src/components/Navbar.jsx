@@ -16,20 +16,6 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const signOutUser = () => {
-    signOut(auth)
-      .then(() => {
-        setShowDropdown(false);
-        sessionStorage.clear()
-        dispatch(clearCurrentUser());
-        navigate("/sign-in");
-      })
-      .catch((error) => {
-        console.log(error);
-        toast.error("An error occurred. Please try again.");
-      });
-  };
-
   return (
     <nav className="bg-[#313131] w-full relative">
       <div className="container mx-auto text-white flex justify-between items-center p-2">
