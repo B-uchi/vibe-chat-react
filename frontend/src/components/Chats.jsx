@@ -240,7 +240,7 @@ const Chats = ({
         <div className="flex items-center gap-2 w-full">
           <form
             onSubmit={searchChat}
-            className="flex-1 p-2 bg-[#f5f5f5] rounded-lg flex items-center transition-all hover:bg-[#efefef] focus-within:bg-[#efefef] focus-within:shadow-md"
+            className="p-2 md:w-[80%] w-full bg-[#f5f5f5] rounded-lg flex-1 flex items-center transition-all hover:bg-[#efefef] focus-within:bg-[#efefef] focus-within:shadow-md"
           >
             <button
               type="submit"
@@ -260,22 +260,24 @@ const Chats = ({
               className="bg-transparent flex-grow p-1 outline-none placeholder:text-gray-400"
             />
           </form>
-          <button
-            type="button"
-            onClick={() => navigate("/settings")}
-            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Settings"
-          >
-            <IoSettingsOutline size={20} />
-          </button>
-          <button
-            type="button"
-            onClick={signOutUser}
-            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Sign Out"
-          >
-            <GoSignOut size={20} />
-          </button>
+          <div className="flex justify-evenly w-[20%]">
+            <button
+              type="button"
+              onClick={() => navigate("/settings")}
+              className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Settings"
+            >
+              <IoSettingsOutline size={20} />
+            </button>
+            <button
+              type="button"
+              onClick={signOutUser}
+              className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Sign Out"
+            >
+              <GoSignOut size={20} />
+            </button>
+          </div>
         </div>
         <div className="flex w-full justify-between mt-3 border-b border-gray-200">
           <button
@@ -327,7 +329,6 @@ const Chats = ({
                   data={{
                     participantId: chat.participantsData.id,
                     chatId: chat.chatId,
-                    onlineStatus: chat.participantsData.onlineStatus,
                     lastMessage: chat.lastMessage,
                     lastSender: chat.lastSender,
                     username: chat.participantsData.username,
@@ -369,7 +370,6 @@ const Chats = ({
                   data={{
                     participantId: chat.participantsData.id,
                     chatId: chat.chatId,
-                    onlineStatus: chat.participantsData.onlineStatus,
                     lastMessage: chat.lastMessage,
                     lastSender: chat.lastSender,
                     username: chat.participantsData.username,
