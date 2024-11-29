@@ -14,8 +14,8 @@ import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "../lib/firebaseConfig";
 import { FaArrowDown } from "react-icons/fa6";
 import { Navigate } from "react-router-dom";
-import { MdCall } from "react-icons/md";
-import { useSocket } from '../context/SocketContext';
+import { MdCall, MdDelete } from "react-icons/md";
+import { useSocket } from "../context/SocketContext";
 
 const MobileChatWindow = ({
   activeChat,
@@ -35,8 +35,11 @@ const MobileChatWindow = ({
   let groupedMessages;
   const [isTyping, setIsTyping] = useState(false);
   const [partnerTyping, setPartnerTyping] = useState(false);
+  const [partnerOnline, setPartnerOnline] = useState(false);
   const socket = useSocket();
   const typingTimeoutRef = useRef(null);
+  const [showMessageOptions, setShowMessageOptions] = useState(false);
+  const [selectedMessageId, setSelectedMessageId] = useState("");
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -202,13 +205,33 @@ const MobileChatWindow = ({
   }
 
   useEffect(() => {
-    if (socket && activeChat) {
-      socket.on("typing_status", ({ chatId, userId, isTyping }) => {
-        if (chatId === activeChat.chatId && userId !== currentUser.id) {
-          setPartnerTyping(isTyping);
-        }
-      });
+    if (!socket) return;
+
+    if (activeChat) {
+      socket.emit("is_online", activeChat.participantId);
     }
+
+    socket.on("typing_status", ({ chatId, userId, isTyping }) => {
+      if (
+        activeChat &&
+        chatId === activeChat.chatId &&
+        userId !== currentUser.id
+      ) {
+        setPartnerTyping(isTyping);
+      }
+    });
+
+    socket.on("user_status", ({ userId, status }) => {
+      console.log("event received");
+      if (activeChat && userId === activeChat.participantId) {
+        setPartnerOnline(status === "online");
+      }
+    });
+
+    return () => {
+      socket.off("typing_status");
+      socket.off("user_status");
+    };
   }, [socket, activeChat]);
 
   const emitTyping = (isTyping) => {
@@ -216,7 +239,8 @@ const MobileChatWindow = ({
       socket.emit("typing", {
         chatId: activeChat.chatId,
         userId: currentUser.id,
-        isTyping
+        otherParticipantId: activeChat.participantId,
+        isTyping,
       });
     }
   };
@@ -237,6 +261,18 @@ const MobileChatWindow = ({
     }, 2000);
   };
 
+  const showOptions = (id) => {
+    setSelectedMessageId((prevId) => {
+      if (prevId === id) {
+        setShowMessageOptions(false);
+        return null;
+      } else {
+        setShowMessageOptions(true);
+        return id;
+      }
+    });
+  };
+
   if (!activeChat) return <Navigate to="/" />;
 
   return (
@@ -255,17 +291,29 @@ const MobileChatWindow = ({
               <IoMdArrowBack size={20} />
             </button>
             <div className="flex items-center space-x-3">
-              <img
-                src={activeChat.profilePhoto}
-                alt=""
-                className="w-10 h-10 rounded-full object-cover"
-              />
+              <div className="relative">
+                <img
+                  src={activeChat.profilePhoto}
+                  alt=""
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+                {partnerOnline && (
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                )}
+                {!partnerOnline && (
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-gray-500 rounded-full border-2 border-white"></div>
+                )}
+              </div>
               <div>
                 <p className="font-semibold text-gray-900">
                   {activeChat.username}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {partnerTyping ? "Typing..." : activeChat.onlineStatus ? "Online" : "Offline"}
+                  {partnerTyping
+                    ? "Typing..."
+                    : partnerOnline
+                    ? "Online"
+                    : "Offline"}
                 </p>
               </div>
             </div>
@@ -359,21 +407,34 @@ const MobileChatWindow = ({
                                 isSender ? "justify-end" : "justify-start"
                               }`}
                             >
-                              <div
-                                className={`max-w-[70%] break-words rounded-lg px-4 py-2 ${
-                                  isSender
-                                    ? "bg-blue-600 text-white"
-                                    : "bg-gray-100 text-gray-900"
-                                }`}
-                              >
-                                <p>{message.message}</p>
-                                <p
-                                  className={`text-xs mt-1 ${
-                                    isSender ? "text-blue-100" : "text-gray-500"
+                              <div className="group relative max-w-[70%]">
+                                <div
+                                  onClick={() => showOptions(message.id)}
+                                  className={`px-4 py-2 rounded-2xl break-words ${
+                                    isSender
+                                      ? "bg-blue-600 text-white"
+                                      : "bg-gray-100 text-gray-900"
                                   }`}
                                 >
+                                  <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                                </div>
+                                <span
+                                  className={`text-xs text-gray-500 mt-1 ${
+                                    isSender ? "text-right" : "text-left"
+                                  } block`}
+                                >
                                   {convertTimestampToTime(message.timeStamp)}
-                                </p>
+                                </span>
+                                {showMessageOptions && selectedMessageId === message.id && (
+                                  <button
+                                    className="absolute top-0 bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 transition"
+                                    style={{
+                                      [isSender ? "left" : "right"]: "-40px",
+                                    }}
+                                  >
+                                    <MdDelete size={16} />
+                                  </button>
+                                )}
                               </div>
                             </div>
                           );

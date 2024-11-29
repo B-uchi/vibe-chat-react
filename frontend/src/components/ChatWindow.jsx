@@ -16,7 +16,7 @@ import {
 } from "../redux/chatReducer/chatAction";
 import { IoMdArrowBack } from "react-icons/io";
 import { IoEllipsisVertical } from "react-icons/io5";
-import { useEffect, useRef, useState } from "react";
+import { act, useEffect, useRef, useState } from "react";
 import { useAuth } from "../lib/hooks/useAuth";
 import { toast, Toaster } from "sonner";
 import { IoSend } from "react-icons/io5";
@@ -25,7 +25,7 @@ import { db } from "../lib/firebaseConfig";
 import { FaArrowDown } from "react-icons/fa6";
 import { MdCall, MdDelete } from "react-icons/md";
 import { IoMdClose } from "react-icons/io";
-import { io } from "socket.io-client";
+import { useSocket } from "../context/SocketContext";
 
 const ChatWindow = ({
   activeChat,
@@ -44,34 +44,50 @@ const ChatWindow = ({
   const [showRequest, setShowRequest] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const [partnerTyping, setPartnerTyping] = useState(false);
+  const [partnerOnline, setPartnerOnline] = useState(false);
   const user = useAuth().user;
   const messagesEndRef = useRef(null);
-  const socketRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const socket = useSocket();
   let groupedMessages;
 
   useEffect(() => {
-    socketRef.current = io(import.meta.env.VITE_API_URL);
+    if (!socket) return;
 
-    socketRef.current.on("typing_status", ({ chatId, userId, isTyping }) => {
-      if (activeChat && chatId === activeChat.chatId && userId !== currentUser.id) {
+    if (activeChat) {
+      socket.emit("is_online", activeChat.participantId);
+    }
+
+    socket.on("typing_status", ({ chatId, userId, isTyping }) => {
+      if (
+        activeChat &&
+        chatId === activeChat.chatId &&
+        userId !== currentUser.id
+      ) {
         setPartnerTyping(isTyping);
       }
     });
 
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
+    socket.on("user_status", ({ userId, status }) => {
+      console.log("event received");
+      if (activeChat && userId === activeChat.participantId) {
+        setPartnerOnline(status === "online");
       }
+    });
+
+    return () => {
+      socket.off("typing_status");
+      socket.off("user_status");
     };
-  }, [activeChat]);
+  }, [socket, activeChat]);
 
   const emitTyping = (isTyping) => {
-    if (socketRef.current && activeChat) {
-      socketRef.current.emit("typing", {
+    if (socket && activeChat) {
+      socket.emit("typing", {
         chatId: activeChat.chatId,
         userId: currentUser.id,
-        isTyping
+        otherParticipantId: activeChat.participantId,
+        isTyping,
       });
     }
   };
@@ -299,8 +315,11 @@ const ChatWindow = ({
                       alt=""
                       className="w-10 h-10 rounded-full object-cover"
                     />
-                    {activeChat.onlineStatus && (
+                    {partnerOnline && (
                       <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                    )}
+                    {!partnerOnline && (
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-gray-500 rounded-full border-2 border-white"></div>
                     )}
                   </div>
                   <div>
@@ -308,7 +327,11 @@ const ChatWindow = ({
                       {activeChat.username}
                     </h3>
                     <p className="text-sm text-gray-500">
-                      {partnerTyping ? "Typing..." : activeChat.onlineStatus ? "Online" : "Offline"}
+                      {partnerTyping
+                        ? "Typing..."
+                        : partnerOnline
+                        ? "Online"
+                        : "Offline"}
                     </p>
                   </div>
                 </div>
