@@ -6,7 +6,6 @@ const Conversation = ({ data, onClick }) => {
     username,
     timestamp,
     profilePhoto,
-    onlineStatus,
     chatId,
     participantId,
     isFriend,
@@ -49,7 +48,6 @@ const Conversation = ({ data, onClick }) => {
         onClick({
           username,
           profilePhoto,
-          onlineStatus,
           chatId,
           participantId,
           isFriend,
@@ -65,11 +63,6 @@ const Conversation = ({ data, onClick }) => {
             src={profilePhoto}
             alt={username}
           />
-          <div
-            className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-              onlineStatus ? "bg-green-500" : "bg-gray-400"
-            }`}
-          ></div>
         </div>
         <div className="w-full overflow-hidden">
           <div className="flex items-center gap-2">
