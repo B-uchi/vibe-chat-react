@@ -46,11 +46,11 @@ VibeChat has two main directories: one for the frontend and one for the backend.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/VibeChat.git
+   git clone https://github.com/B-uchi/vibe-chat-react.git
    ```
 2. Navigate to the backend directory:
    ```bash
-   cd Vibechat/backend
+   cd vibe-chat-react/backend
    ```
 3. Install the backend dependencies:
    ```bash
